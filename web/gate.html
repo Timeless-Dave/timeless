@@ -11,7 +11,7 @@
     <div class="panel card">
       <p class="shell-kicker">Daily gate</p>
       <h1 class="shell-title">Lock a plan</h1>
-      <p class="shell-lead">Today stays locked until this day’s plan is saved. You can also set a day ahead.</p>
+      <p class="shell-lead">Today stays locked until this day's plan is saved. You can also set a day ahead.</p>
       <div class="card-head shell-section">
         <label class="compact-label" for="plan-day">Day</label>
         <input type="date" id="plan-day" class="inline-date" />
@@ -30,6 +30,8 @@
       <p class="miss" id="err"></p>
     </div>
   </div>
+  <script src="/static/summary.js"></script>
+  <script src="/static/ui.js"></script>
   <script src="/static/theme.js"></script>
   <script src="/static/app.js"></script>
   <script src="/static/clock.js"></script>
@@ -71,6 +73,7 @@
         await api("/api/plan", { method: "POST", body: JSON.stringify({ outcomes, timeline, day }) });
         if (day === today) location.href = "/";
         else el("err").textContent = "Saved for " + day + ". Today still needs a plan before the desk unlocks.";
+        if (window.UI) UI.toast("Plan saved for " + day + ".", "mint");
       } catch (e) {
         el("err").textContent = e.message;
       }

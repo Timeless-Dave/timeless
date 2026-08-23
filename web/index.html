@@ -7,132 +7,186 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <div class="shell">
-    <header class="topbar">
-      <div class="topbar-title">
-        <strong>Timeless</strong>
-        <span class="status" id="status">Loading…</span>
+  <div class="app-shell">
+    <nav class="rail" aria-label="Sections">
+      <div class="rail-logo" aria-hidden="true">
+        <svg viewBox="0 0 40 41" fill="none"><path d="M8 20c0-6.6 5.4-12 12-12s12 5.4 12 12-5.4 12-12 12" stroke="currentColor" stroke-width="3"/><path d="M20 8v24M8 20h24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
       </div>
-      <div class="topbar-tools">
-        <input type="search" id="dash-search" class="search" placeholder="Search" autocomplete="off" />
-        <div class="dropdown">
-          <button type="button" class="ghost" id="focus-toggle">Focus</button>
-          <div class="dropdown-panel" id="focus-box">
-            <p class="sub">Suppress halts and phone pings during interviews or deep work.</p>
-            <div class="choice-row" id="focus-levels">
-              <button type="button" class="ghost on" data-level="quiet">Quiet</button>
-              <button type="button" class="ghost" data-level="mild">Mild</button>
-              <button type="button" class="ghost" data-level="dormant">Dormant</button>
-            </div>
-            <div class="choice-row" id="focus-durations">
-              <button type="button" class="ghost" data-min="15">15m</button>
-              <button type="button" class="ghost on" data-min="60">1h</button>
-              <button type="button" class="ghost" data-min="120">2h</button>
-            </div>
-            <button type="button" id="focus-start">Start focus</button>
-          </div>
-        </div>
-        <div class="dropdown">
-          <button type="button" class="ghost" id="theme-toggle">Theme</button>
-          <div class="dropdown-panel" id="theme-box">
-            <p class="sub" id="theme-hex">#9d5cff</p>
-            <label>R <input type="range" id="theme-r" min="0" max="255" /></label>
-            <label>G <input type="range" id="theme-g" min="0" max="255" /></label>
-            <label>B <input type="range" id="theme-b" min="0" max="255" /></label>
-            <label class="check"><input type="checkbox" id="theme-tint" /> Full tint</label>
-            <button type="button" class="ghost" id="theme-reset">Reset</button>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <nav class="tabs">
-      <button type="button" class="tab on" data-scroll="overview">Overview</button>
-      <button type="button" class="tab" data-scroll="panel-plan">Plan</button>
-      <button type="button" class="tab" data-scroll="panel-events">Events</button>
-      <button type="button" class="tab" data-scroll="panel-programs">Programs</button>
-      <button type="button" class="tab" data-scroll="panel-mail">Mail</button>
-      <button type="button" class="tab" data-scroll="panel-rituals">Rituals</button>
-      <button type="button" class="tab" data-scroll="panel-approvals">Approvals</button>
+      <button type="button" class="rail-btn on" data-scroll="overview" title="Overview"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.8"/></svg></button>
+      <button type="button" class="rail-btn" data-scroll="panel-plan" title="Plan"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 9h8M8 13h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <button type="button" class="rail-btn" data-scroll="panel-events" title="Events"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 3v4M16 3v4M3 10h18" stroke="currentColor" stroke-width="1.8"/></svg></button>
+      <button type="button" class="rail-btn" data-scroll="panel-programs" title="Programs"><svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <button type="button" class="rail-btn" data-scroll="panel-mail" title="Mail"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="1.8"/></svg></button>
+      <button type="button" class="rail-btn" data-scroll="panel-rituals" title="Rituals"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+      <button type="button" class="rail-btn" data-scroll="panel-approvals" title="Approvals"><svg viewBox="0 0 24 24" fill="none"><path d="M9 11l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.8"/></svg></button>
+      <div class="rail-spacer"></div>
+      <button type="button" class="rail-btn" data-scroll="dark-sensors" title="Sensors"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/></svg></button>
     </nav>
 
-    <div class="quiet-banner" id="quiet-banner" hidden></div>
+    <div class="workspace">
+      <div class="shell-card">
+        <div class="page-wrap">
+          <header class="page-head">
+            <div>
+              <h1 class="page-title">Day overview</h1>
+              <p class="page-date" id="page-date">Loading…</p>
+            </div>
+            <div class="head-tools">
+              <input type="search" id="dash-search" class="search" placeholder="Search" autocomplete="off" />
+              <button type="button" class="icon-btn" id="search-btn" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-3-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+              <div class="pop-wrap">
+                <button type="button" class="icon-btn" data-pop-toggle="notify-box" aria-label="Status"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a5 5 0 00-5 5v3l-1.5 3H18.5L17 11V8a5 5 0 00-5-5z" stroke="currentColor" stroke-width="1.8"/><path d="M10 18a2 2 0 004 0" stroke="currentColor" stroke-width="1.8"/></svg></button>
+                <div class="pop" id="notify-box"><p id="status">Loading…</p></div>
+              </div>
+              <div class="pop-wrap">
+                <button type="button" class="ghost" data-pop-toggle="focus-box">Focus</button>
+                <div class="pop" id="focus-box">
+                  <p>Suppress halts and phone pings during interviews or deep work.</p>
+                  <div class="choice-row" id="focus-levels">
+                    <button type="button" class="ghost on" data-level="quiet">Quiet</button>
+                    <button type="button" class="ghost" data-level="mild">Mild</button>
+                    <button type="button" class="ghost" data-level="dormant">Dormant</button>
+                  </div>
+                  <div class="choice-row" id="focus-durations">
+                    <button type="button" class="ghost" data-min="15">15m</button>
+                    <button type="button" class="ghost on" data-min="60">1h</button>
+                    <button type="button" class="ghost" data-min="120">2h</button>
+                  </div>
+                  <button type="button" id="focus-start">Start focus</button>
+                </div>
+              </div>
+              <div class="pop-wrap">
+                <button type="button" class="ghost" data-pop-toggle="theme-box">Theme</button>
+                <div class="pop" id="theme-box">
+                  <p id="theme-hex">#d08726</p>
+                  <label>R <input type="range" id="theme-r" min="0" max="255" /></label>
+                  <label>G <input type="range" id="theme-g" min="0" max="255" /></label>
+                  <label>B <input type="range" id="theme-b" min="0" max="255" /></label>
+                  <button type="button" class="ghost" id="theme-reset">Reset accent</button>
+                </div>
+              </div>
+            </div>
+          </header>
 
-    <main class="content">
-      <div class="main-col">
-        <section class="card stat-line" id="overview">
-          <div class="stat"><span class="stat-name">Plan</span><span class="stat-value" id="kpi-plan-val">—</span></div>
-          <div class="stat"><span class="stat-name">Events</span><span class="stat-value" id="kpi-events-val">0</span></div>
-          <div class="stat"><span class="stat-name">Approvals</span><span class="stat-value" id="kpi-approvals-val">0</span></div>
-          <div class="stat"><span class="stat-name">Programs</span><span class="stat-value" id="kpi-programs-val">0</span></div>
-        </section>
+          <div class="quiet-banner" id="quiet-banner" hidden></div>
 
-        <section class="card">
-          <div class="card-head">
-            <h2>Year</h2>
-            <span class="meta" id="heat-meta"></span>
+          <div class="page-body">
+            <div class="main-col">
+              <section id="overview">
+                <div class="metric-row" id="metrics"></div>
+              </section>
+
+              <section class="card chart-card">
+                <div class="card-head">
+                  <h2>Activity growth</h2>
+                  <span class="count-chip" id="chart-range">Last 18 days</span>
+                </div>
+                <div id="activity-chart"></div>
+                <div class="chart-legend"><span>Daily logged activity</span></div>
+              </section>
+
+              <section class="card next-strip" id="next-strip">
+                <strong>Upcoming</strong>
+                <span class="chip cyan" id="next-when">—</span>
+                <span class="next-detail" id="next-detail">Nothing scheduled.</span>
+              </section>
+
+              <section class="card panel" id="panel-plan">
+                <div id="plan"></div>
+              </section>
+
+              <section class="card panel" id="panel-events">
+                <div class="card-head">
+                  <h2>Events</h2>
+                  <span class="count-chip" id="events-count"></span>
+                </div>
+                <p class="card-lead" id="events-summary"></p>
+                <div class="scroll" id="meetings"></div>
+              </section>
+
+              <section class="card panel" id="panel-programs">
+                <div class="card-head">
+                  <h2>Programs</h2>
+                  <span class="count-chip" id="programs-count"></span>
+                </div>
+                <p class="card-lead" id="programs-summary"></p>
+                <div class="scroll" id="opps"></div>
+              </section>
+
+              <section class="card panel" id="panel-mail">
+                <div class="card-head">
+                  <h2>Mail</h2>
+                  <span class="count-chip" id="mail-count"></span>
+                </div>
+                <p class="card-lead" id="mail-summary"></p>
+                <div class="scroll" id="mail"></div>
+              </section>
+
+              <section class="card panel" id="panel-rituals">
+                <div class="card-head">
+                  <h2>Rituals</h2>
+                  <span class="count-chip" id="rituals-count"></span>
+                </div>
+                <p class="card-lead" id="rituals-summary"></p>
+                <div class="scroll" id="rituals"></div>
+              </section>
+
+              <section class="card panel" id="panel-approvals">
+                <div class="card-head">
+                  <h2>Approvals</h2>
+                  <span class="count-chip" id="approvals-count"></span>
+                </div>
+                <p class="card-lead" id="approvals-summary"></p>
+                <div class="scroll" id="approvals"></div>
+              </section>
+            </div>
+
+            <aside class="dark-panel" id="dark-sensors">
+              <div class="card-head" style="margin-bottom:0.25rem">
+                <h2>Day progress</h2>
+              </div>
+              <p class="sub-dark" id="dark-checked">Updated just now</p>
+              <div class="tile-row">
+                <div class="pastel-tile amber">
+                  <div class="ruler" id="ruler-blocks"></div>
+                  <div class="tile-row-inner"><span>Planned blocks</span><strong id="tile-blocks">0</strong></div>
+                </div>
+                <div class="pastel-tile cyan">
+                  <div class="ruler" id="ruler-events"></div>
+                  <div class="tile-row-inner"><span>Logged today</span><strong id="tile-events">0</strong></div>
+                </div>
+              </div>
+              <div class="progress-card">
+                <p class="progress-label">Plan completion</p>
+                <div class="progress-top">
+                  <span class="progress-value" id="progress-pct">0%</span>
+                  <span class="chip mint" id="progress-chip">Clear day</span>
+                </div>
+                <div id="progress-range"></div>
+              </div>
+              <hr class="dark-divider" />
+              <h2>Signals</h2>
+              <p class="sub-dark" id="sensor-summary"></p>
+              <span class="chip neutral" id="focus-chip">Normal mode</span>
+              <div class="measure-row" id="measure-row"></div>
+              <div class="card-head" style="margin-top:0.5rem">
+                <h2 style="font-size:18px">Year</h2>
+                <span class="meta" id="heat-meta" style="color:var(--muted-on-dark)"></span>
+              </div>
+              <div id="heat"></div>
+              <hr class="dark-divider" />
+              <h2>Sensors</h2>
+              <div class="row phone-bar">
+                <button type="button" id="ph-w">Wireless</button>
+                <button type="button" class="ghost" id="ph-u">USB</button>
+              </div>
+              <p class="sub-dark" id="phone-msg" style="font-weight:400;font-size:14px">Reconnect phone on hotspot or USB.</p>
+              <div class="scroll" id="heart"></div>
+            </aside>
           </div>
-          <div id="heat"></div>
-        </section>
-
-        <section class="card panel" id="panel-plan">
-          <div id="plan"></div>
-        </section>
-
-        <section class="card panel" id="panel-events">
-          <div class="card-head">
-            <h2>Events</h2>
-            <span class="count-chip" id="events-count"></span>
-          </div>
-          <div class="scroll" id="meetings"></div>
-        </section>
-
-        <section class="card panel" id="panel-programs">
-          <div class="card-head">
-            <h2>Programs</h2>
-            <span class="count-chip" id="programs-count"></span>
-          </div>
-          <div class="scroll" id="opps"></div>
-        </section>
-
-        <section class="card panel" id="panel-mail">
-          <div class="card-head">
-            <h2>Mail</h2>
-            <span class="count-chip" id="mail-count"></span>
-          </div>
-          <div class="scroll" id="mail"></div>
-        </section>
-
-        <section class="card panel" id="panel-rituals">
-          <div class="card-head">
-            <h2>Rituals</h2>
-            <span class="count-chip" id="rituals-count"></span>
-          </div>
-          <div class="scroll" id="rituals"></div>
-        </section>
-
-        <section class="card panel" id="panel-approvals">
-          <div class="card-head">
-            <h2>Approvals</h2>
-            <span class="count-chip" id="approvals-count"></span>
-          </div>
-          <div class="scroll" id="approvals"></div>
-        </section>
+        </div>
       </div>
-
-      <aside class="side-col">
-        <section class="card">
-          <div class="card-head"><h2>Sensors</h2></div>
-          <div class="row phone-bar">
-            <button type="button" id="ph-w">Wireless</button>
-            <button type="button" class="ghost" id="ph-u">USB</button>
-          </div>
-          <p class="sub" id="phone-msg">Reconnect phone on hotspot or USB.</p>
-          <div class="scroll" id="heart"></div>
-          <p class="sub" id="sensor-summary"></p>
-        </section>
-      </aside>
-    </main>
+    </div>
   </div>
 
   <div class="chat" id="fab">
@@ -155,62 +209,125 @@
     </div>
   </div>
 
+  <script src="/static/summary.js"></script>
+  <script src="/static/ui.js"></script>
   <script src="/static/theme.js"></script>
   <script src="/static/app.js"></script>
   <script src="/static/clock.js"></script>
   <script>
+    const S = window.Summary;
+    const U = window.UI;
+
     function esc(s) {
       return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     }
     function ago(iso) {
-      if (!iso) return "never";
-      const t = Date.parse(iso.endsWith("Z") ? iso : iso + "Z");
-      if (Number.isNaN(t)) return iso;
-      const s = Math.max(0, (Date.now() - t) / 1000);
-      if (s < 60) return "just now";
-      if (s < 3600) return Math.round(s / 60) + "m ago";
-      if (s < 86400) return Math.round(s / 3600) + "h ago";
-      return Math.round(s / 86400) + "d ago";
+      return S.relTime(iso, Date.now()).replace(/^in /, "").includes("ago") ? S.relTime(iso) : S.relTime(iso);
     }
-    function when(iso) {
-      if (!iso) return "";
-      const d = new Date(iso.endsWith("Z") ? iso : iso + "Z");
-      if (Number.isNaN(d.getTime())) return iso;
-      return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-    }
-    function parseTs(iso) {
-      if (!iso) return NaN;
-      return Date.parse(iso.endsWith("Z") ? iso : iso + "Z");
-    }
+    function when(iso) { return S.when(iso); }
+    function parseTs(iso) { return S.parseTs(iso); }
+
     function nextMeeting(meetings) {
       const now = Date.now();
       return (meetings || [])
         .filter((m) => !m.ack && parseTs(m.end_at) > now)
         .sort((a, b) => parseTs(a.start_at) - parseTs(b.start_at))[0] || null;
     }
-    function paintKpis(t) {
-      const plan = (planDay === t.day ? (t.plan || {}) : (t.viewPlan || {}));
-      const blocks = (plan.timeline || []).filter((b) => (b.task || "").trim());
-      el("kpi-plan-val").textContent = blocks.length ? String(blocks.length) : "0";
-      el("kpi-events-val").textContent = String(t.meetings.length);
-      el("kpi-approvals-val").textContent = String(t.approvals.length);
-      el("kpi-programs-val").textContent = String(t.opportunities.length);
+
+    function heatSeries(heatmap, n) {
+      const days = (heatmap || []).slice(-n);
+      return days.map((d) => d.count || 0);
     }
+
+    function paintMetrics(t) {
+      const plan = planDay === t.day ? (t.plan || {}) : (t.viewPlan || {});
+      const blocks = S.planBlocks(plan);
+      const approvals = t.approvals.length;
+      const events = t.meetings.length;
+      const series = heatSeries(t.heatmap, 7);
+      const planTone = blocks > 0 ? "mint" : "amber";
+      const eventTone = events > 0 ? "cyan" : "amber";
+      const apprTone = approvals > 0 ? "rose" : "mint";
+      el("metrics").innerHTML = `
+        <article class="card metric-card">
+          <div class="metric-top">
+            <div class="metric-icon amber">${U.iconPlan()}</div>
+            <div><p class="metric-label">Plan</p></div>
+          </div>
+          <div class="metric-value-row"><span class="metric-value">${blocks}</span><span class="metric-unit">blocks</span></div>
+          <span class="chip ${planTone}">${blocks ? "Scheduled" : "Empty plan"}</span>
+          <div class="metric-spark">${U.sparkline(series.length ? series : [blocks], "var(--pastel-amber-icon)", 173, 72)}</div>
+        </article>
+        <article class="card metric-card">
+          <div class="metric-top">
+            <div class="metric-icon rose">${U.iconEvents()}</div>
+            <div><p class="metric-label">Events</p></div>
+          </div>
+          <div class="metric-value-row"><span class="metric-value">${events}</span><span class="metric-unit">items</span></div>
+          <span class="chip ${eventTone}">${events ? "On calendar" : "Clear"}</span>
+          <div class="metric-spark">${U.sparkline(series, "var(--pastel-rose-icon)", 173, 72)}</div>
+        </article>
+        <article class="card metric-card">
+          <div class="metric-top">
+            <div class="metric-icon cyan">${U.iconApprovals()}</div>
+            <div><p class="metric-label">Approvals</p></div>
+          </div>
+          <div class="metric-value-row"><span class="metric-value">${approvals}</span><span class="metric-unit">pending</span></div>
+          <span class="chip ${apprTone}">${approvals ? "Needs you" : "All clear"}</span>
+          <div class="metric-spark">${U.sparkline(series.map((v) => Math.min(v, approvals || 1)), "var(--pastel-cyan-icon)", 173, 72)}</div>
+        </article>`;
+    }
+
+    function paintChart(t) {
+      const days = (t.heatmap || []).slice(-18).map((d) => ({ label: d.day, count: d.count || 0 }));
+      el("activity-chart").innerHTML = U.barChart(days, 640, 220);
+    }
+
+    function paintNext(t) {
+      const m = nextMeeting(t.meetings);
+      if (!m) {
+        el("next-when").textContent = "—";
+        el("next-detail").textContent = "Nothing upcoming on the calendar.";
+        return;
+      }
+      el("next-when").textContent = S.relTime(m.start_at);
+      el("next-detail").textContent = m.title + (m.join_url ? " · Join ready" : "");
+    }
+
+    function paintDark(t) {
+      const plan = planDay === t.day ? (t.plan || {}) : (t.viewPlan || {});
+      const ps = S.planStatus(plan, t.heatmap, t.day);
+      el("tile-blocks").textContent = String(ps.blocks);
+      el("tile-events").textContent = String(ps.events);
+      el("ruler-blocks").innerHTML = U.rulerTicks(Math.min(8, ps.blocks));
+      el("ruler-events").innerHTML = U.rulerTicks(Math.min(8, ps.events));
+      el("progress-pct").textContent = ps.value + "%";
+      el("progress-chip").textContent = ps.label;
+      el("progress-chip").className = "chip " + ps.tone;
+      el("progress-range").innerHTML = U.rangeBar(ps.value);
+      el("sensor-summary").textContent = S.sensorSummary(t.heartbeats);
+      el("focus-chip").textContent = S.focusLabel(t.quiet);
+      const fresh = t.heartbeats.filter((h) => Date.now() - parseTs(h.last_seen) < 30 * 60 * 1000).length;
+      el("measure-row").innerHTML = `
+        <div class="measure-card"><div class="measure-name">Sensors live</div><div class="measure-val">${fresh} ${U.trendArrow(fresh >= t.heartbeats.length / 2 ? "up" : "down")}</div></div>
+        <div class="measure-card"><div class="measure-name">Programs open</div><div class="measure-val">${t.opportunities.filter((o) => !["rejected","skipped","ignored","offer"].includes(o.state)).length} ${U.trendArrow("down")}</div></div>
+        <div class="measure-card"><div class="measure-name">Mail actions</div><div class="measure-val">${t.mail.length} ${U.trendArrow(t.mail.length ? "up" : "down")}</div></div>`;
+    }
+
     function paintQuiet(t) {
       const q = t.quiet;
       const banner = el("quiet-banner");
-      if (!q || !q.active) {
-        banner.hidden = true;
-        return;
-      }
+      if (!q || !q.active) { banner.hidden = true; return; }
       const mins = Math.max(1, Math.round((q.seconds_left || 0) / 60));
       let extra = t.muted_halt ? ` · muted: ${esc(t.muted_halt.title)}` : "";
       banner.hidden = false;
       banner.innerHTML = `<span>Focus · ${esc(q.level)} · ${mins}m left${extra}</span>
         <button type="button" class="ghost" id="quiet-end">End now</button>`;
     }
+
     let focusLevel = "quiet";
     let focusMin = 60;
+
     function approvalFields(kind, payload) {
       const p = payload || {};
       const line = (label, value, quote) => (value != null && value !== "" ? { label, value: String(value), quote } : null);
@@ -232,6 +349,7 @@
           return { title: kind.replace(/_/g, " "), lines: Object.entries(p).filter(([k, v]) => !skip.has(k) && v != null && v !== "").slice(0, 4).map(([k, v]) => line(k.replace(/_/g, " "), v)) };
       }
     }
+
     function approvalHtml(a) {
       const f = approvalFields(a.kind, a.payload);
       const body = f.lines.length
@@ -239,16 +357,19 @@
         : `<p class="approval-empty">No details.</p>`;
       return `<article class="approval-item"><div class="approval-head"><strong class="approval-title">${esc(f.title)}</strong><span class="approval-kind">${esc(a.kind.replace(/_/g, " "))}</span></div><div class="approval-body">${body}</div>${f.hint ? `<p class="approval-hint">${esc(f.hint)}</p>` : ""}<div class="approval-actions"><button data-id="${a.id}" data-act="accept">Accept</button><button class="ghost" data-id="${a.id}" data-act="keep">Keep seen</button><button class="ghost" data-id="${a.id}" data-act="reject">Ignore</button></div></article>`;
     }
+
     let lastMain = "";
     let lastSide = "";
     let lastToday = null;
     let planDay = "";
     let viewPlanCache = { day: "", plan: null };
+
     function editing() {
       if (document.querySelector(".clock-pop")) return true;
       const a = document.activeElement;
       return a && ["INPUT", "TEXTAREA", "SELECT"].includes(a.tagName) && a.id !== "q" && a.id !== "dash-search";
     }
+
     function blockHtml(b) {
       return `<div class="block-row" data-block>
         <button type="button" class="time-btn" data-k="start" title="Start">${esc(b.start || "09:00")}</button>
@@ -257,32 +378,39 @@
         <input class="task" data-k="task" placeholder="What you'll do" value="${esc(b.task || "")}" />
       </div>`;
     }
+
     function paintMain(t) {
       lastToday = t;
       if (!planDay) planDay = t.day;
-      const plan = (planDay === t.day ? (t.plan || {}) : (t.viewPlan || {}));
+      const plan = planDay === t.day ? (t.plan || {}) : (t.viewPlan || {});
       const blocks = (plan.timeline && plan.timeline.length) ? plan.timeline.map(blockHtml).join("") : blockHtml({ start: "09:00", end: "10:00", task: "" });
       el("plan").innerHTML = `<div class="card-head"><h2>Today</h2><input type="date" id="plan-day" class="inline-date" value="${esc(planDay)}" min="${esc(t.day)}" /></div>
+        <p class="card-lead">${S.planBlocks(plan) ? S.planBlocks(plan) + " blocks locked in for this day." : "Add blocks so the day has a shape."}</p>
         <label class="compact-label">Done means</label>
         <textarea id="outcomes" class="compact-area" rows="2" placeholder="What counts as a win today">${esc(plan.outcomes || "")}</textarea>
         <div class="plan-blocks"><div class="plan-blocks-head"><span>Blocks</span></div><div id="plan-rows">${blocks}</div>
         <div class="plan-actions"><button type="button" class="ghost" id="add-block">+ Block</button><button type="button" id="save-plan">Save</button></div></div>`;
+      el("events-summary").textContent = S.eventsSummary(t.meetings);
       el("meetings").innerHTML = t.meetings.length
         ? `<table class="grid-table"><thead><tr><th>When</th><th>Title</th><th>Type</th><th>Join</th></tr></thead><tbody>` +
-          t.meetings.map((m) => `<tr><td>${esc(when(m.start_at))}</td><td>${esc(m.title)}</td><td><select data-meet="${m.id}" data-k="modality"><option value="virtual"${m.modality === "virtual" ? " selected" : ""}>Virtual</option><option value="physical"${m.modality === "physical" ? " selected" : ""}>In person</option></select></td><td>${m.join_url ? `<button type="button" class="ghost" data-join="${m.id}">Join</button>` : ""}<input data-meet="${m.id}" data-k="join_url" placeholder="paste link" value="${esc(m.join_url || "")}" /></td></tr>`).join("") + `</tbody></table>`
+          t.meetings.map((m) => `<tr><td>${esc(when(m.start_at))}<br><span class="chip cyan">${esc(S.relTime(m.start_at))}</span></td><td>${esc(m.title)}</td><td><select data-meet="${m.id}" data-k="modality"><option value="virtual"${m.modality === "virtual" ? " selected" : ""}>Virtual</option><option value="physical"${m.modality === "physical" ? " selected" : ""}>In person</option></select></td><td>${m.join_url ? `<button type="button" class="ghost" data-join="${m.id}">Join</button>` : ""}<input data-meet="${m.id}" data-k="join_url" placeholder="paste link" value="${esc(m.join_url || "")}" /></td></tr>`).join("") + `</tbody></table>`
         : "<p class=\"empty-note\">No events stored.</p>";
+      el("programs-summary").textContent = S.programSummary(t.opportunities);
       el("opps").innerHTML = t.opportunities.length
         ? `<table class="grid-table"><thead><tr><th>Role</th><th>Kind</th><th>State</th><th>URL</th></tr></thead><tbody>` +
-          t.opportunities.map((o) => `<tr><td><input data-opp-edit="${o.id}" data-k="role" value="${esc(o.role || "")}" /></td><td><select data-opp-edit="${o.id}" data-k="kind">${["internship","hackathon","conference","other"].map((k) => `<option${o.kind === k ? " selected" : ""}>${k}</option>`).join("")}</select></td><td><select data-opp="${o.id}" data-state-sel="1">${["seen","applied","shortlisted","interview","waiting","offer","rejected","skipped","ignored"].map((s) => `<option${o.state === s ? " selected" : ""}>${s}</option>`).join("")}</select></td><td><input data-opp-edit="${o.id}" data-k="url" value="${esc(o.url || "")}" /></td></tr>`).join("") + `</tbody></table><p class="sub">Change a field and it saves.</p>`
+          t.opportunities.map((o) => `<tr><td><input data-opp-edit="${o.id}" data-k="role" value="${esc(o.role || "")}" /></td><td><select data-opp-edit="${o.id}" data-k="kind">${["internship","hackathon","conference","other"].map((k) => `<option${o.kind === k ? " selected" : ""}>${k}</option>`).join("")}</select></td><td><select data-opp="${o.id}" data-state-sel="1">${["seen","applied","shortlisted","interview","waiting","offer","rejected","skipped","ignored"].map((s) => `<option value="${s}"${o.state === s ? " selected" : ""}>${esc(S.stateLabel(s))}</option>`).join("")}</select></td><td><input data-opp-edit="${o.id}" data-k="url" value="${esc(o.url || "")}" /></td></tr>`).join("") + `</tbody></table>`
         : "<p class=\"empty-note\">No postings yet.</p>";
+      el("mail-summary").textContent = S.mailSummary(t.mail);
       el("mail").innerHTML = t.mail.length
         ? `<table class="grid-table"><thead><tr><th>Type</th><th>Subject</th></tr></thead><tbody>` +
-          t.mail.map((m) => `<tr><td>${esc(m.classification)}</td><td>${esc(m.subject)}</td></tr>`).join("") +
+          t.mail.map((m) => `<tr><td><span class="chip amber">${esc(S.mailLabel(m.classification))}</span></td><td>${esc(m.subject)}</td></tr>`).join("") +
           `</tbody></table>`
         : "<p class=\"empty-note\">No actionable mail cards.</p>";
+      el("rituals-summary").textContent = S.ritualsSummary(t.rituals);
       el("rituals").innerHTML = t.rituals.length
         ? `<div class="sensors">${t.rituals.map((r) => `<div class="sensor"><div class="sensor-top"><span class="sensor-name">${esc(r.name)}</span><button data-done="${r.id}">Done</button></div>${r.launch_url ? `<p class="sensor-meta"><a href="${esc(r.launch_url)}" target="_blank" rel="noopener">${esc(r.launch_url)}</a></p>` : ""}</div>`).join("")}</div>`
         : "<p class=\"empty-note\">No rituals pinned.</p>";
+      el("approvals-summary").textContent = S.approvalsSummary(t.approvals);
       el("approvals").innerHTML = t.approvals.length
         ? `<div class="approval-list">${t.approvals.map(approvalHtml).join("")}</div>`
         : `<p class="empty-note">None pending.</p>`;
@@ -291,14 +419,18 @@
       el("programs-count").textContent = String(t.opportunities.length);
       el("mail-count").textContent = String(t.mail.length);
       el("rituals-count").textContent = String(t.rituals.length);
-      paintKpis(t);
+      paintMetrics(t);
+      paintChart(t);
+      paintNext(t);
+      paintDark(t);
       paintQuiet(t);
     }
+
     async function paintSide(t) {
       const days = t.heatmap || [];
       const active = days.filter((d) => (d.count || 0) > 0).length;
       const total = days.reduce((n, d) => n + (d.count || 0), 0);
-      el("heat-meta").textContent = days.length ? `${active} active · ${total} events` : "";
+      el("heat-meta").textContent = days.length ? `${active} active days · ${total} events logged` : "";
       const heat = days.map((d) => {
         const n = d.count || 0;
         const lvl = n === 0 ? 0 : n < 3 ? 1 : n < 8 ? 2 : n < 20 ? 3 : 4;
@@ -307,20 +439,19 @@
       el("heat").innerHTML = `<div class="heat">${heat}</div>`;
       el("heart").innerHTML = t.heartbeats.length
         ? `<div class="sensors">${t.heartbeats.map((h) => {
-            const stale = (Date.now() - Date.parse((h.last_seen || "").endsWith("Z") ? h.last_seen : h.last_seen + "Z")) > 30 * 60 * 1000;
-            return `<div class="sensor"><div class="sensor-top"><span class="sensor-name">${esc(h.sensor)}</span><span class="chip ${stale ? "stale" : "ok"}">${stale ? "stale" : "ok"}</span></div><p class="sensor-meta">${esc(ago(h.last_seen))}</p></div>`;
+            const stale = Date.now() - parseTs(h.last_seen) > 30 * 60 * 1000;
+            return `<div class="sensor"><div class="sensor-top"><span class="sensor-name">${esc(h.sensor)}</span><span class="chip ${stale ? "stale" : "ok"}">${stale ? "Quiet" : "Live"}</span></div><p class="sensor-meta">Last seen ${esc(S.relTime(h.last_seen))}</p></div>`;
           }).join("")}</div>`
-        : "<p class=\"empty-note\">No sensors yet.</p>";
-      const fresh = t.heartbeats.filter((h) => (Date.now() - Date.parse((h.last_seen || "").endsWith("Z") ? h.last_seen : h.last_seen + "Z")) < 30 * 60 * 1000).length;
-      el("sensor-summary").textContent = t.heartbeats.length ? `${fresh}/${t.heartbeats.length} reporting in the last 30 minutes.` : "";
+        : "<p class=\"empty-note\" style=\"color:var(--muted-on-dark)\">No sensors yet.</p>";
       try {
         const a = await api("/api/access");
         const remote = (a.urls || []).filter((u) => !u.includes("127.0.0.1"));
         if (remote.length) {
-          el("heart").innerHTML += "<p class=\"sub\">Phone URLs</p><ul>" + remote.map((u) => `<li><code>${esc(u)}</code></li>`).join("") + "</ul>";
+          el("heart").innerHTML += "<p class=\"sub-dark\" style=\"font-weight:400;font-size:13px\">Phone URLs</p><ul style=\"color:var(--muted-on-dark);font-size:13px\">" + remote.map((u) => `<li><code>${esc(u)}</code></li>`).join("") + "</ul>";
         }
       } catch (_) {}
     }
+
     function filterPanels(q) {
       const needle = (q || "").trim().toLowerCase();
       document.querySelectorAll(".panel").forEach((p) => {
@@ -328,6 +459,14 @@
         p.classList.toggle("search-hide", !p.textContent.toLowerCase().includes(needle));
       });
     }
+
+    function formatPageDate(day) {
+      try {
+        const d = new Date(day + "T12:00:00");
+        return d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+      } catch (_) { return day; }
+    }
+
     async function refresh(opts) {
       const nav = opts && opts.nav;
       const force = opts && opts.force;
@@ -341,9 +480,12 @@
         if (t.needs_recap) { location.href = "/recap"; return; }
         if (t.needs_gate) { location.href = "/gate"; return; }
       }
-      el("status").textContent = t.brain === "online"
-        ? `${t.day} · ${t.tz}${t.quiet && t.quiet.active ? " · Focus" : ""}`
-        : "Offline";
+      const statusText = t.brain === "online"
+        ? `${t.day} · ${t.tz}${t.quiet && t.quiet.active ? " · Focus on" : ""}`
+        : "Brain offline";
+      el("status").textContent = statusText;
+      el("page-date").textContent = formatPageDate(t.day);
+      el("dark-checked").textContent = "Updated " + new Date().toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
       if (editing() && !force) return;
       const main = JSON.stringify({ plan: t.plan, meetings: t.meetings, opps: t.opportunities, approvals: t.approvals, mail: t.mail, rituals: t.rituals, planDay });
       const side = JSON.stringify({ heat: t.heatmap, heart: t.heartbeats });
@@ -351,6 +493,7 @@
       if (force || side !== lastSide) { lastSide = side; await paintSide(t); }
       filterPanels(el("dash-search").value);
     }
+
     function collectTimeline() {
       return [...document.querySelectorAll("#plan-rows [data-block]")].map((row) => ({
         start: row.querySelector("[data-k=start]").textContent.trim(),
@@ -358,24 +501,35 @@
         task: row.querySelector("[data-k=task]").value,
       })).filter((b) => b.task.trim());
     }
+
     async function savePlan() {
       await api("/api/plan", { method: "POST", body: JSON.stringify({ outcomes: el("outcomes").value, timeline: collectTimeline(), day: el("plan-day").value || planDay }) });
       planDay = el("plan-day").value || planDay;
       viewPlanCache = { day: "", plan: null };
+      U.toast("Plan saved.", "mint");
       await refresh({ force: true });
     }
+
     document.body.addEventListener("click", async (e) => {
       const t = e.target;
       if (t.id === "save-plan") await savePlan();
       if (t.id === "add-block") el("plan-rows").insertAdjacentHTML("beforeend", blockHtml({ start: "09:00", end: "10:00", task: "" }));
       if (t.classList && t.classList.contains("time-btn")) ClockPop(t, t.textContent.trim(), (v) => { t.textContent = v; });
-      if (t.dataset.act && t.dataset.id) { await api(`/api/approvals/${t.dataset.id}/${t.dataset.act}`, { method: "POST" }); await refresh({ force: true }); }
-      if (t.dataset.done) { alert((await api(`/api/rituals/${t.dataset.done}/done`, { method: "POST" })).praise); await refresh({ force: true }); }
+      if (t.dataset.act && t.dataset.id) { await api(`/api/approvals/${t.dataset.id}/${t.dataset.act}`, { method: "POST" }); U.toast("Approval updated."); await refresh({ force: true }); }
+      if (t.dataset.done) {
+        const r = await api(`/api/rituals/${t.dataset.done}/done`, { method: "POST" });
+        U.toast(r.praise || "Ritual marked done.", "mint");
+        await refresh({ force: true });
+      }
       if (t.id === "quiet-end" && lastToday && lastToday.quiet) { await api(`/api/quiet/${lastToday.quiet.id}`, { method: "DELETE" }); await refresh({ force: true }); }
       if (t.dataset.join) { await api(`/api/meetings/${t.dataset.join}/join`, { method: "POST", body: JSON.stringify({}) }); await refresh({ force: true }); }
-      if (t.dataset.scroll) document.getElementById(t.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" });
-      if (t.classList && t.classList.contains("tab")) document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === t));
+      if (t.dataset.scroll) {
+        document.getElementById(t.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        document.querySelectorAll(".rail-btn").forEach((x) => x.classList.toggle("on", x.dataset.scroll === t.dataset.scroll));
+      }
+      if (t.id === "search-btn") el("dash-search").focus();
     });
+
     document.body.addEventListener("change", async (e) => {
       const t = e.target;
       if (t.id === "plan-day") {
@@ -388,8 +542,10 @@
       if (t.dataset.opp && t.dataset.stateSel) { await api(`/api/opportunities/${t.dataset.opp}/state`, { method: "POST", body: JSON.stringify({ state: t.value }) }); await refresh({ force: true }); }
       if (t.dataset.oppEdit && t.dataset.k) { const body = {}; body[t.dataset.k] = t.value; await api(`/api/opportunities/${t.dataset.oppEdit}`, { method: "PATCH", body: JSON.stringify(body) }); await refresh({ force: true }); }
     });
+
     el("dash-search").addEventListener("input", (e) => filterPanels(e.target.value));
     el("fab-toggle").onclick = () => el("fab").classList.toggle("open");
+
     const chatKey = "timeless_chat";
     let thread = [];
     try { thread = JSON.parse(localStorage.getItem(chatKey) || "[]"); } catch (_) { thread = []; }
@@ -421,21 +577,24 @@
     el("q").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(el("q").value); } });
     el("chat-clear").onclick = () => { thread = []; saveChat(); renderChat(); };
     document.body.addEventListener("click", (e) => { if (e.target.classList && e.target.classList.contains("hint")) sendChat(e.target.dataset.q); });
+
     async function phoneLink(mode) {
       const msg = el("phone-msg");
       msg.textContent = mode === "usb" ? "Looking for USB…" : "Trying wireless…";
       try {
         const r = await api("/api/phone/connect", { method: "POST", body: JSON.stringify({ mode }) });
-        msg.textContent = r.ok ? `Linked (${mode})` : (r.detail || "Phone not reachable.");
+        msg.textContent = r.ok ? `Phone linked (${mode}).` : (r.detail || "Phone not reachable.");
+        if (r.ok) U.toast("Phone connected.", "mint");
       } catch (err) { msg.textContent = err.message || "Connect failed."; }
       await refresh({ force: true });
     }
     el("ph-w").onclick = () => phoneLink("wireless");
     el("ph-u").onclick = () => phoneLink("usb");
-    el("focus-toggle").onclick = () => el("focus-box").classList.toggle("open");
+
     el("focus-levels").addEventListener("click", (e) => { const b = e.target.closest("[data-level]"); if (!b) return; focusLevel = b.dataset.level; el("focus-levels").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); });
     el("focus-durations").addEventListener("click", (e) => { const b = e.target.closest("[data-min]"); if (!b) return; focusMin = parseInt(b.dataset.min, 10); el("focus-durations").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); });
-    el("focus-start").onclick = async () => { await api("/api/quiet", { method: "POST", body: JSON.stringify({ level: focusLevel, minutes: focusMin }) }); el("focus-box").classList.remove("open"); await refresh({ force: true }); };
+    el("focus-start").onclick = async () => { await api("/api/quiet", { method: "POST", body: JSON.stringify({ level: focusLevel, minutes: focusMin }) }); UI.closePop(); U.toast("Focus started.", "mint"); await refresh({ force: true }); };
+
     refresh({ nav: true }).catch((err) => { el("status").textContent = "Brain offline — " + err.message; });
     setInterval(() => refresh().catch(() => {}), 8000);
   </script>

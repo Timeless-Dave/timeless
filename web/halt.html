@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#0c0c0c" />
+  <meta name="theme-color" content="#fffcf8" />
   <title>Timeless — halt</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
@@ -36,9 +36,12 @@
     </div>
   </div>
   <button type="button" class="panic-btn" id="panic">Panic · 1h quiet</button>
+  <script src="/static/summary.js"></script>
+  <script src="/static/ui.js"></script>
   <script src="/static/theme.js"></script>
   <script src="/static/app.js"></script>
   <script>
+    const S = window.Summary;
     const labels = { start_30m: "30 min · virtual", start_2h: "2 hours · leave soon", start_1d: "Tomorrow · prep", submit_4h: "4 hours · submit", present_30m: "30 min · present" };
     let halt = null;
     let miss = 0;
@@ -60,6 +63,7 @@
     }
     async function leaveAfter(msg, ok) {
       setStatus(msg, ok);
+      if (window.UI) UI.toast(msg, ok ? "mint" : "");
       await new Promise((r) => setTimeout(r, 1100));
       location.href = "/";
     }
@@ -82,6 +86,13 @@
     function applyPresentation() {
       document.body.classList.toggle("halt-banner", halt && halt.presentation === "banner");
     }
+    function formatWhen(start, end) {
+      if (!start && !end) return "";
+      const a = start ? S.when(start) : "";
+      const b = end ? S.when(end) : "";
+      if (a && b) return a + " → " + b;
+      return a || b;
+    }
     async function tick() {
       if (busy) return;
       const t = await api("/api/today");
@@ -97,13 +108,13 @@
       applyPresentation();
       const reminder = halt.halt_kind === "reminder";
       el("title").textContent = halt.title;
-      el("when").textContent = (halt.start_at || "") + " → " + (halt.end_at || "");
+      el("when").textContent = formatWhen(halt.start_at, halt.end_at);
       const why = reminder
         ? `${halt.kind || "event"} · ${halt.modality || ""} · ${labels[halt.purpose] || halt.purpose}`
-        : "Meeting now";
+        : "Meeting now · " + S.relTime(halt.start_at);
       el("meta").innerHTML = reminder
-        ? `<span class="chip">${halt.kind || "event"}</span><span class="chip">${halt.modality || "—"}</span>`
-        : `<span class="chip">Meeting</span>`;
+        ? `<span class="chip cyan">${halt.kind || "event"}</span><span class="chip amber">${halt.modality || "—"}</span>`
+        : `<span class="chip rose">Meeting</span>`;
       el("copy").textContent = why;
       el("hint").textContent = halt.im_in_hint || "";
       el("join").style.display = halt.join_url ? "inline-block" : "none";

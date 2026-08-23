@@ -7,24 +7,24 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <div class="wrap">
-    <header class="top top-row">
-      <div>
-        <p class="shell-kicker dash-kicker">Dashboard</p>
-        <h1>Timeless</h1>
-        <p class="sub" id="status">Loading…</p>
+  <div class="shell">
+    <header class="topbar">
+      <div class="topbar-title">
+        <strong>Timeless</strong>
+        <span class="status" id="status">Loading…</span>
       </div>
-      <div class="header-tools">
-        <div class="focus-wrap">
-          <button type="button" class="focus-toggle" id="focus-toggle">Focus</button>
-          <div class="focus-box" id="focus-box">
-            <p>Suppress halts and phone pings during interviews or deep work.</p>
-            <div class="focus-levels" id="focus-levels">
+      <div class="topbar-tools">
+        <input type="search" id="dash-search" class="search" placeholder="Search" autocomplete="off" />
+        <div class="dropdown">
+          <button type="button" class="ghost" id="focus-toggle">Focus</button>
+          <div class="dropdown-panel" id="focus-box">
+            <p class="sub">Suppress halts and phone pings during interviews or deep work.</p>
+            <div class="choice-row" id="focus-levels">
               <button type="button" class="ghost on" data-level="quiet">Quiet</button>
               <button type="button" class="ghost" data-level="mild">Mild</button>
               <button type="button" class="ghost" data-level="dormant">Dormant</button>
             </div>
-            <div class="focus-durations" id="focus-durations">
+            <div class="choice-row" id="focus-durations">
               <button type="button" class="ghost" data-min="15">15m</button>
               <button type="button" class="ghost on" data-min="60">1h</button>
               <button type="button" class="ghost" data-min="120">2h</button>
@@ -32,83 +32,115 @@
             <button type="button" id="focus-start">Start focus</button>
           </div>
         </div>
-        <div class="theme-wrap">
-        <button type="button" class="theme-toggle" id="theme-toggle">Theme</button>
-        <div class="theme-box" id="theme-box">
-          <p class="sub" id="theme-hex">#c4a35a</p>
-          <label>R <input type="range" id="theme-r" min="0" max="255" /></label>
-          <label>G <input type="range" id="theme-g" min="0" max="255" /></label>
-          <label>B <input type="range" id="theme-b" min="0" max="255" /></label>
-          <label><input type="checkbox" id="theme-tint" /> Full tint</label>
-          <button type="button" class="ghost" id="theme-reset">Reset</button>
-        </div>
+        <div class="dropdown">
+          <button type="button" class="ghost" id="theme-toggle">Theme</button>
+          <div class="dropdown-panel" id="theme-box">
+            <p class="sub" id="theme-hex">#9d5cff</p>
+            <label>R <input type="range" id="theme-r" min="0" max="255" /></label>
+            <label>G <input type="range" id="theme-g" min="0" max="255" /></label>
+            <label>B <input type="range" id="theme-b" min="0" max="255" /></label>
+            <label class="check"><input type="checkbox" id="theme-tint" /> Full tint</label>
+            <button type="button" class="ghost" id="theme-reset">Reset</button>
+          </div>
         </div>
       </div>
     </header>
+
+    <nav class="tabs">
+      <button type="button" class="tab on" data-scroll="overview">Overview</button>
+      <button type="button" class="tab" data-scroll="panel-plan">Plan</button>
+      <button type="button" class="tab" data-scroll="panel-events">Events</button>
+      <button type="button" class="tab" data-scroll="panel-programs">Programs</button>
+      <button type="button" class="tab" data-scroll="panel-mail">Mail</button>
+      <button type="button" class="tab" data-scroll="panel-rituals">Rituals</button>
+      <button type="button" class="tab" data-scroll="panel-approvals">Approvals</button>
+    </nav>
+
     <div class="quiet-banner" id="quiet-banner" hidden></div>
-    <main class="dash-grid">
-      <section class="card tile tile-today tile-hero">
-        <div id="plan"></div>
-      </section>
-      <section class="card tile tile-next compact">
-        <h2>Next</h2>
-        <div id="next"></div>
-      </section>
-      <section class="card tile tile-approvals">
-        <div class="card-head-count">
-          <h2>Approvals</h2>
-          <span class="count-chip" id="approvals-count"></span>
-        </div>
-        <div class="scroll" id="approvals"></div>
-      </section>
-      <section class="card tile tile-events">
-        <div class="card-head-count">
-          <h2>Events</h2>
-          <span class="count-chip" id="events-count"></span>
-        </div>
-        <div class="scroll" id="meetings"></div>
-      </section>
-      <section class="card tile tile-programs">
-        <div class="card-head-count">
-          <h2>Programs</h2>
-          <span class="count-chip" id="programs-count"></span>
-        </div>
-        <div class="scroll" id="opps"></div>
-      </section>
-      <section class="card tile tile-rituals compact">
-        <h2>Rituals</h2>
-        <div id="rituals"></div>
-      </section>
-      <section class="card tile tile-mail">
-        <div class="card-head-count">
-          <h2>Mail</h2>
-          <span class="count-chip" id="mail-count"></span>
-        </div>
-        <div class="scroll" id="mail"></div>
-      </section>
-      <section class="card tile tile-year compact">
-        <div class="card-head-inline">
-          <h2>Year</h2>
-          <span class="card-meta" id="heat-meta"></span>
-        </div>
-        <div id="heat"></div>
-      </section>
-      <section class="card tile tile-sensors compact">
-        <h2>Sensors</h2>
-        <div class="row phone-bar">
-          <button type="button" id="ph-w">Wireless</button>
-          <button type="button" class="ghost" id="ph-u">USB</button>
-        </div>
-        <p class="sub" id="phone-msg">Reconnect the phone when this Mac is on its hotspot, or with USB.</p>
-        <div class="scroll" id="heart"></div>
-      </section>
+
+    <main class="content">
+      <div class="main-col">
+        <section class="card stat-line" id="overview">
+          <div class="stat"><span class="stat-name">Plan</span><span class="stat-value" id="kpi-plan-val">—</span></div>
+          <div class="stat"><span class="stat-name">Events</span><span class="stat-value" id="kpi-events-val">0</span></div>
+          <div class="stat"><span class="stat-name">Approvals</span><span class="stat-value" id="kpi-approvals-val">0</span></div>
+          <div class="stat"><span class="stat-name">Programs</span><span class="stat-value" id="kpi-programs-val">0</span></div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2>Year</h2>
+            <span class="meta" id="heat-meta"></span>
+          </div>
+          <div id="heat"></div>
+        </section>
+
+        <section class="card panel" id="panel-plan">
+          <div id="plan"></div>
+        </section>
+
+        <section class="card panel" id="panel-events">
+          <div class="card-head">
+            <h2>Events</h2>
+            <span class="count-chip" id="events-count"></span>
+          </div>
+          <div class="scroll" id="meetings"></div>
+        </section>
+
+        <section class="card panel" id="panel-programs">
+          <div class="card-head">
+            <h2>Programs</h2>
+            <span class="count-chip" id="programs-count"></span>
+          </div>
+          <div class="scroll" id="opps"></div>
+        </section>
+
+        <section class="card panel" id="panel-mail">
+          <div class="card-head">
+            <h2>Mail</h2>
+            <span class="count-chip" id="mail-count"></span>
+          </div>
+          <div class="scroll" id="mail"></div>
+        </section>
+
+        <section class="card panel" id="panel-rituals">
+          <div class="card-head">
+            <h2>Rituals</h2>
+            <span class="count-chip" id="rituals-count"></span>
+          </div>
+          <div class="scroll" id="rituals"></div>
+        </section>
+
+        <section class="card panel" id="panel-approvals">
+          <div class="card-head">
+            <h2>Approvals</h2>
+            <span class="count-chip" id="approvals-count"></span>
+          </div>
+          <div class="scroll" id="approvals"></div>
+        </section>
+      </div>
+
+      <aside class="side-col">
+        <section class="card">
+          <div class="card-head"><h2>Sensors</h2></div>
+          <div class="row phone-bar">
+            <button type="button" id="ph-w">Wireless</button>
+            <button type="button" class="ghost" id="ph-u">USB</button>
+          </div>
+          <p class="sub" id="phone-msg">Reconnect phone on hotspot or USB.</p>
+          <div class="scroll" id="heart"></div>
+          <p class="sub" id="sensor-summary"></p>
+        </section>
+      </aside>
     </main>
   </div>
-  <div class="fab" id="fab">
-    <div class="fab-panel chat">
+
+  <div class="chat" id="fab">
+    <button type="button" class="chat-toggle" id="fab-toggle">Chat</button>
+    <div class="chat-panel">
       <div class="chat-head">
         <span>Timeless</span>
-        <button type="button" class="ghost chat-clear" id="chat-clear">Clear</button>
+        <button type="button" class="ghost" id="chat-clear">Clear</button>
       </div>
       <div id="log" class="chat-log"></div>
       <div class="chat-hints" id="hints">
@@ -121,8 +153,8 @@
         <button type="button" id="ask">Send</button>
       </div>
     </div>
-    <button type="button" class="fab-btn" id="fab-toggle" aria-label="Chat">+</button>
   </div>
+
   <script src="/static/theme.js"></script>
   <script src="/static/app.js"></script>
   <script src="/static/clock.js"></script>
@@ -156,27 +188,13 @@
         .filter((m) => !m.ack && parseTs(m.end_at) > now)
         .sort((a, b) => parseTs(a.start_at) - parseTs(b.start_at))[0] || null;
     }
-    function untilLabel(iso) {
-      const t = parseTs(iso);
-      if (Number.isNaN(t)) return "";
-      const s = Math.round((t - Date.now()) / 1000);
-      if (s <= 0) return "now";
-      if (s < 3600) return "in " + Math.round(s / 60) + "m";
-      if (s < 86400) return "in " + Math.round(s / 3600) + "h";
-      return "in " + Math.round(s / 86400) + "d";
-    }
-    function paintNext(t) {
-      const m = nextMeeting(t.meetings);
-      if (!m) {
-        el("next").innerHTML = '<p class="next-empty">No upcoming events.</p>';
-        return;
-      }
-      const join = m.join_url
-        ? `<button type="button" data-join="${m.id}">Join</button>`
-        : "";
-      el("next").innerHTML = `<p class="next-when">${esc(untilLabel(m.start_at))} · ${esc(when(m.start_at))}</p>
-        <p class="next-title">${esc(m.title)}</p>
-        <div class="plan-actions">${join}</div>`;
+    function paintKpis(t) {
+      const plan = (planDay === t.day ? (t.plan || {}) : (t.viewPlan || {}));
+      const blocks = (plan.timeline || []).filter((b) => (b.task || "").trim());
+      el("kpi-plan-val").textContent = blocks.length ? String(blocks.length) : "0";
+      el("kpi-events-val").textContent = String(t.meetings.length);
+      el("kpi-approvals-val").textContent = String(t.approvals.length);
+      el("kpi-programs-val").textContent = String(t.opportunities.length);
     }
     function paintQuiet(t) {
       const q = t.quiet;
@@ -200,70 +218,26 @@
       switch (kind) {
         case "mark_applied":
         case "opportunity_applied":
-          return {
-            title: "Mark as applied",
-            lines: [line("Posting", p.url), line("Evidence", p.snippet, true)].filter(Boolean),
-          };
+          return { title: "Mark as applied", lines: [line("Posting", p.url), line("Evidence", p.snippet, true)].filter(Boolean) };
         case "opportunity_skip":
         case "mark_skipped":
-          return {
-            title: "Skip this posting",
-            lines: [line("Posting", p.url), line("Reason", p.snippet, true)].filter(Boolean),
-            hint: "Skip stops reminders. Keep seen if you might reapply.",
-          };
+          return { title: "Skip this posting", lines: [line("Posting", p.url), line("Reason", p.snippet, true)].filter(Boolean), hint: "Skip stops reminders." };
         case "do_send":
-          return {
-            title: "Blocked risky action",
-            lines: [
-              line("Action", p.label || p.action),
-              line("Type", p.action && p.action.replace(/_/g, " ")),
-              line("Target", p.url),
-            ].filter(Boolean),
-            hint: "Accept records intent only — nothing is sent.",
-          };
+          return { title: "Blocked risky action", lines: [line("Action", p.label || p.action), line("Target", p.url)].filter(Boolean), hint: "Accept records intent only." };
         case "pin_ritual":
-          return {
-            title: "Pin ritual",
-            lines: [line("Name", p.name), line("URL", p.launch_url), line("Host", p.match_host)].filter(Boolean),
-          };
+          return { title: "Pin ritual", lines: [line("Name", p.name), line("URL", p.launch_url)].filter(Boolean) };
         case "keep_seen":
-          return {
-            title: "Keep as seen",
-            lines: [line("Posting", p.url), line("Note", p.snippet, true)].filter(Boolean),
-          };
+          return { title: "Keep as seen", lines: [line("Posting", p.url), line("Note", p.snippet, true)].filter(Boolean) };
         default:
-          return {
-            title: kind.replace(/_/g, " "),
-            lines: Object.entries(p)
-              .filter(([k, v]) => !skip.has(k) && v != null && v !== "")
-              .slice(0, 4)
-              .map(([k, v]) => line(k.replace(/_/g, " "), v)),
-          };
+          return { title: kind.replace(/_/g, " "), lines: Object.entries(p).filter(([k, v]) => !skip.has(k) && v != null && v !== "").slice(0, 4).map(([k, v]) => line(k.replace(/_/g, " "), v)) };
       }
     }
     function approvalHtml(a) {
       const f = approvalFields(a.kind, a.payload);
       const body = f.lines.length
-        ? f.lines.map((l) =>
-            `<div class="approval-field${l.quote ? " quote" : ""}">
-              <span class="approval-label">${esc(l.label)}</span>
-              <span class="approval-value">${esc(l.value.length > 220 ? l.value.slice(0, 217) + "…" : l.value)}</span>
-            </div>`
-          ).join("")
+        ? f.lines.map((l) => `<div class="approval-field"><span class="approval-label">${esc(l.label)}</span><span class="approval-value">${esc(l.value.length > 220 ? l.value.slice(0, 217) + "…" : l.value)}</span></div>`).join("")
         : `<p class="approval-empty">No details.</p>`;
-      return `<article class="approval-item">
-        <header class="approval-head">
-          <strong class="approval-title">${esc(f.title)}</strong>
-          <span class="chip">${esc(a.kind.replace(/_/g, " "))}</span>
-        </header>
-        <div class="approval-body">${body}</div>
-        ${f.hint ? `<p class="approval-hint">${esc(f.hint)}</p>` : ""}
-        <div class="approval-actions">
-          <button data-id="${a.id}" data-act="accept">Accept</button>
-          <button class="ghost" data-id="${a.id}" data-act="keep">Keep seen</button>
-          <button class="ghost" data-id="${a.id}" data-act="reject">Ignore</button>
-        </div>
-      </article>`;
+      return `<article class="approval-item"><div class="approval-head"><strong class="approval-title">${esc(f.title)}</strong><span class="approval-kind">${esc(a.kind.replace(/_/g, " "))}</span></div><div class="approval-body">${body}</div>${f.hint ? `<p class="approval-hint">${esc(f.hint)}</p>` : ""}<div class="approval-actions"><button data-id="${a.id}" data-act="accept">Accept</button><button class="ghost" data-id="${a.id}" data-act="keep">Keep seen</button><button class="ghost" data-id="${a.id}" data-act="reject">Ignore</button></div></article>`;
     }
     let lastMain = "";
     let lastSide = "";
@@ -273,7 +247,7 @@
     function editing() {
       if (document.querySelector(".clock-pop")) return true;
       const a = document.activeElement;
-      return a && ["INPUT", "TEXTAREA", "SELECT"].includes(a.tagName) && a.id !== "q";
+      return a && ["INPUT", "TEXTAREA", "SELECT"].includes(a.tagName) && a.id !== "q" && a.id !== "dash-search";
     }
     function blockHtml(b) {
       return `<div class="block-row" data-block>
@@ -287,78 +261,44 @@
       lastToday = t;
       if (!planDay) planDay = t.day;
       const plan = (planDay === t.day ? (t.plan || {}) : (t.viewPlan || {}));
-      const blocks = (plan.timeline && plan.timeline.length)
-        ? plan.timeline.map(blockHtml).join("")
-        : blockHtml({ start: "09:00", end: "10:00", task: "" });
-      el("plan").innerHTML = `<div class="card-head-inline">
-          <h2>Today</h2>
-          <input type="date" id="plan-day" class="inline-date" value="${esc(planDay)}" min="${esc(t.day)}" />
-        </div>
+      const blocks = (plan.timeline && plan.timeline.length) ? plan.timeline.map(blockHtml).join("") : blockHtml({ start: "09:00", end: "10:00", task: "" });
+      el("plan").innerHTML = `<div class="card-head"><h2>Today</h2><input type="date" id="plan-day" class="inline-date" value="${esc(planDay)}" min="${esc(t.day)}" /></div>
         <label class="compact-label">Done means</label>
         <textarea id="outcomes" class="compact-area" rows="2" placeholder="What counts as a win today">${esc(plan.outcomes || "")}</textarea>
-        <div class="plan-blocks">
-          <div class="plan-blocks-head"><span>Blocks</span></div>
-          <div id="plan-rows">${blocks}</div>
-          <div class="plan-actions">
-            <button type="button" class="ghost" id="add-block">+ Block</button>
-            <button type="button" id="save-plan">Save</button>
-          </div>
-        </div>`;
+        <div class="plan-blocks"><div class="plan-blocks-head"><span>Blocks</span></div><div id="plan-rows">${blocks}</div>
+        <div class="plan-actions"><button type="button" class="ghost" id="add-block">+ Block</button><button type="button" id="save-plan">Save</button></div></div>`;
       el("meetings").innerHTML = t.meetings.length
         ? `<table class="grid-table"><thead><tr><th>When</th><th>Title</th><th>Type</th><th>Join</th></tr></thead><tbody>` +
-          t.meetings.map((m) => `<tr>
-            <td>${esc(when(m.start_at))}</td>
-            <td>${esc(m.title)}</td>
-            <td><select data-meet="${m.id}" data-k="modality">
-              <option value="virtual"${m.modality === "virtual" ? " selected" : ""}>Virtual</option>
-              <option value="physical"${m.modality === "physical" ? " selected" : ""}>In person</option>
-            </select></td>
-            <td>${m.join_url ? `<a href="${esc(m.join_url)}" target="_blank" rel="noopener">Join</a>` : ""}
-              <input data-meet="${m.id}" data-k="join_url" placeholder="paste link" value="${esc(m.join_url || "")}" /></td>
-          </tr>`).join("") + `</tbody></table>`
-        : "<p>No events stored.</p>";
+          t.meetings.map((m) => `<tr><td>${esc(when(m.start_at))}</td><td>${esc(m.title)}</td><td><select data-meet="${m.id}" data-k="modality"><option value="virtual"${m.modality === "virtual" ? " selected" : ""}>Virtual</option><option value="physical"${m.modality === "physical" ? " selected" : ""}>In person</option></select></td><td>${m.join_url ? `<button type="button" class="ghost" data-join="${m.id}">Join</button>` : ""}<input data-meet="${m.id}" data-k="join_url" placeholder="paste link" value="${esc(m.join_url || "")}" /></td></tr>`).join("") + `</tbody></table>`
+        : "<p class=\"empty-note\">No events stored.</p>";
       el("opps").innerHTML = t.opportunities.length
         ? `<table class="grid-table"><thead><tr><th>Role</th><th>Kind</th><th>State</th><th>URL</th></tr></thead><tbody>` +
-          t.opportunities.map((o) => `<tr>
-            <td><input data-opp-edit="${o.id}" data-k="role" value="${esc(o.role || "")}" /></td>
-            <td><select data-opp-edit="${o.id}" data-k="kind">
-              ${["internship","hackathon","conference","other"].map((k) =>
-                `<option${o.kind === k ? " selected" : ""}>${k}</option>`).join("")}
-            </select></td>
-            <td><select data-opp="${o.id}" data-state-sel="1">
-              ${["seen","applied","shortlisted","interview","waiting","offer","rejected","skipped","ignored"].map((s) =>
-                `<option${o.state === s ? " selected" : ""}>${s}</option>`).join("")}
-            </select></td>
-            <td><input data-opp-edit="${o.id}" data-k="url" value="${esc(o.url || "")}" /></td>
-          </tr>`).join("") + `</tbody></table><p class="sub">Change a field and it saves.</p>`
-        : "<p>No postings yet.</p>";
-      el("approvals").innerHTML = t.approvals.length
-        ? `<div class="approval-list">${t.approvals.map(approvalHtml).join("")}</div>`
-        : "<p class=\"empty-note\">None pending.</p>";
+          t.opportunities.map((o) => `<tr><td><input data-opp-edit="${o.id}" data-k="role" value="${esc(o.role || "")}" /></td><td><select data-opp-edit="${o.id}" data-k="kind">${["internship","hackathon","conference","other"].map((k) => `<option${o.kind === k ? " selected" : ""}>${k}</option>`).join("")}</select></td><td><select data-opp="${o.id}" data-state-sel="1">${["seen","applied","shortlisted","interview","waiting","offer","rejected","skipped","ignored"].map((s) => `<option${o.state === s ? " selected" : ""}>${s}</option>`).join("")}</select></td><td><input data-opp-edit="${o.id}" data-k="url" value="${esc(o.url || "")}" /></td></tr>`).join("") + `</tbody></table><p class="sub">Change a field and it saves.</p>`
+        : "<p class=\"empty-note\">No postings yet.</p>";
       el("mail").innerHTML = t.mail.length
         ? `<table class="grid-table"><thead><tr><th>Type</th><th>Subject</th></tr></thead><tbody>` +
-          t.mail.map((m) => `<tr><td><span class="chip">${esc(m.classification)}</span></td><td>${esc(m.subject)}</td></tr>`).join("") +
+          t.mail.map((m) => `<tr><td>${esc(m.classification)}</td><td>${esc(m.subject)}</td></tr>`).join("") +
           `</tbody></table>`
-        : "<p>No actionable mail cards.</p>";
+        : "<p class=\"empty-note\">No actionable mail cards.</p>";
       el("rituals").innerHTML = t.rituals.length
-        ? t.rituals.map((r) => `<div class="row"><span>${esc(r.name)}</span>
-            ${r.launch_url ? `<a href="${esc(r.launch_url)}" target="_blank">Open</a>` : ""}
-            <button data-done="${r.id}">Done</button></div>`).join("")
-        : "<p>No rituals pinned.</p>";
+        ? `<div class="sensors">${t.rituals.map((r) => `<div class="sensor"><div class="sensor-top"><span class="sensor-name">${esc(r.name)}</span><button data-done="${r.id}">Done</button></div>${r.launch_url ? `<p class="sensor-meta"><a href="${esc(r.launch_url)}" target="_blank" rel="noopener">${esc(r.launch_url)}</a></p>` : ""}</div>`).join("")}</div>`
+        : "<p class=\"empty-note\">No rituals pinned.</p>";
+      el("approvals").innerHTML = t.approvals.length
+        ? `<div class="approval-list">${t.approvals.map(approvalHtml).join("")}</div>`
+        : `<p class="empty-note">None pending.</p>`;
       el("approvals-count").textContent = String(t.approvals.length);
       el("events-count").textContent = String(t.meetings.length);
       el("programs-count").textContent = String(t.opportunities.length);
       el("mail-count").textContent = String(t.mail.length);
-      paintNext(t);
+      el("rituals-count").textContent = String(t.rituals.length);
+      paintKpis(t);
       paintQuiet(t);
     }
     async function paintSide(t) {
       const days = t.heatmap || [];
       const active = days.filter((d) => (d.count || 0) > 0).length;
       const total = days.reduce((n, d) => n + (d.count || 0), 0);
-      el("heat-meta").textContent = days.length
-        ? `${active} active · ${total} events`
-        : "";
+      el("heat-meta").textContent = days.length ? `${active} active · ${total} events` : "";
       const heat = days.map((d) => {
         const n = d.count || 0;
         const lvl = n === 0 ? 0 : n < 3 ? 1 : n < 8 ? 2 : n < 20 ? 3 : 4;
@@ -366,64 +306,51 @@
       }).join("");
       el("heat").innerHTML = `<div class="heat">${heat}</div>`;
       el("heart").innerHTML = t.heartbeats.length
-        ? `<div class="sensors">` +
-          t.heartbeats.map((h) => {
+        ? `<div class="sensors">${t.heartbeats.map((h) => {
             const stale = (Date.now() - Date.parse((h.last_seen || "").endsWith("Z") ? h.last_seen : h.last_seen + "Z")) > 30 * 60 * 1000;
-            const detail = (h.detail || "").slice(0, 120);
-            return `<div class="sensor">
-              <div class="sensor-top">
-                <span class="sensor-name">${esc(h.sensor)}</span>
-                <span class="chip ${stale ? "stale" : "ok"}">${stale ? "stale" : "ok"}</span>
-              </div>
-              <p class="sensor-meta">${esc(ago(h.last_seen))}${detail ? " · " + esc(detail) : ""}</p>
-            </div>`;
-          }).join("") + `</div>`
-        : "<p>No sensors yet.</p>";
+            return `<div class="sensor"><div class="sensor-top"><span class="sensor-name">${esc(h.sensor)}</span><span class="chip ${stale ? "stale" : "ok"}">${stale ? "stale" : "ok"}</span></div><p class="sensor-meta">${esc(ago(h.last_seen))}</p></div>`;
+          }).join("")}</div>`
+        : "<p class=\"empty-note\">No sensors yet.</p>";
+      const fresh = t.heartbeats.filter((h) => (Date.now() - Date.parse((h.last_seen || "").endsWith("Z") ? h.last_seen : h.last_seen + "Z")) < 30 * 60 * 1000).length;
+      el("sensor-summary").textContent = t.heartbeats.length ? `${fresh}/${t.heartbeats.length} reporting in the last 30 minutes.` : "";
       try {
         const a = await api("/api/access");
         const remote = (a.urls || []).filter((u) => !u.includes("127.0.0.1"));
         if (remote.length) {
-          el("heart").innerHTML += "<p class=\"sub\">Phone (LAN/Tailscale)</p><ul>" +
-            remote.map((u) => `<li><code>${esc(u)}</code></li>`).join("") + "</ul>";
+          el("heart").innerHTML += "<p class=\"sub\">Phone URLs</p><ul>" + remote.map((u) => `<li><code>${esc(u)}</code></li>`).join("") + "</ul>";
         }
       } catch (_) {}
+    }
+    function filterPanels(q) {
+      const needle = (q || "").trim().toLowerCase();
+      document.querySelectorAll(".panel").forEach((p) => {
+        if (!needle) { p.classList.remove("search-hide"); return; }
+        p.classList.toggle("search-hide", !p.textContent.toLowerCase().includes(needle));
+      });
     }
     async function refresh(opts) {
       const nav = opts && opts.nav;
       const force = opts && opts.force;
       const t = await api("/api/today");
       if (planDay && planDay !== t.day) {
-        if (viewPlanCache.day !== planDay) {
-          viewPlanCache = { day: planDay, plan: await api("/api/plan?day=" + encodeURIComponent(planDay)) };
-        }
+        if (viewPlanCache.day !== planDay) viewPlanCache = { day: planDay, plan: await api("/api/plan?day=" + encodeURIComponent(planDay)) };
         t.viewPlan = viewPlanCache.plan;
-      } else if (planDay === t.day) {
-        t.viewPlan = t.plan;
-      }
+      } else if (planDay === t.day) t.viewPlan = t.plan;
       if (nav) {
         if (t.halt) { location.href = "/halt"; return; }
         if (t.needs_recap) { location.href = "/recap"; return; }
         if (t.needs_gate) { location.href = "/gate"; return; }
       }
       el("status").textContent = t.brain === "online"
-        ? `Brain online · ${t.day} ${t.tz}${t.quiet && t.quiet.active ? " · Focus " + t.quiet.level : ""}`
-        : "Brain offline";
+        ? `${t.day} · ${t.tz}${t.quiet && t.quiet.active ? " · Focus" : ""}`
+        : "Offline";
       if (editing() && !force) return;
-      const main = JSON.stringify({
-        plan: t.plan, meetings: t.meetings, opps: t.opportunities,
-        approvals: t.approvals, mail: t.mail, rituals: t.rituals, planDay,
-      });
+      const main = JSON.stringify({ plan: t.plan, meetings: t.meetings, opps: t.opportunities, approvals: t.approvals, mail: t.mail, rituals: t.rituals, planDay });
       const side = JSON.stringify({ heat: t.heatmap, heart: t.heartbeats });
-      if (force || main !== lastMain) {
-        lastMain = main;
-        paintMain(t);
-      }
-      if (force || side !== lastSide) {
-        lastSide = side;
-        await paintSide(t);
-      }
+      if (force || main !== lastMain) { lastMain = main; paintMain(t); }
+      if (force || side !== lastSide) { lastSide = side; await paintSide(t); }
+      filterPanels(el("dash-search").value);
     }
-
     function collectTimeline() {
       return [...document.querySelectorAll("#plan-rows [data-block]")].map((row) => ({
         start: row.querySelector("[data-k=start]").textContent.trim(),
@@ -432,164 +359,83 @@
       })).filter((b) => b.task.trim());
     }
     async function savePlan() {
-      const outcomes = el("outcomes").value;
-      const day = el("plan-day").value || planDay;
-      const timeline = collectTimeline();
-      await api("/api/plan", { method: "POST", body: JSON.stringify({ outcomes, timeline, day }) });
-      planDay = day;
+      await api("/api/plan", { method: "POST", body: JSON.stringify({ outcomes: el("outcomes").value, timeline: collectTimeline(), day: el("plan-day").value || planDay }) });
+      planDay = el("plan-day").value || planDay;
       viewPlanCache = { day: "", plan: null };
       await refresh({ force: true });
     }
-
     document.body.addEventListener("click", async (e) => {
       const t = e.target;
       if (t.id === "save-plan") await savePlan();
-      if (t.id === "add-block") {
-        el("plan-rows").insertAdjacentHTML("beforeend", blockHtml({ start: "09:00", end: "10:00", task: "" }));
-      }
-      if (t.classList && t.classList.contains("time-btn")) {
-        ClockPop(t, t.textContent.trim(), (v) => { t.textContent = v; });
-      }
-      if (t.dataset.act && t.dataset.id) {
-        await api(`/api/approvals/${t.dataset.id}/${t.dataset.act}`, { method: "POST" });
-        await refresh({ force: true });
-      }
-      if (t.dataset.done) {
-        const out = await api(`/api/rituals/${t.dataset.done}/done`, { method: "POST" });
-        alert(out.praise);
-        await refresh({ force: true });
-      }
-      if (t.id === "quiet-end" && lastToday && lastToday.quiet) {
-        await api(`/api/quiet/${lastToday.quiet.id}`, { method: "DELETE" });
-        await refresh({ force: true });
-      }
-      if (t.dataset.join) {
-        await api(`/api/meetings/${t.dataset.join}/join`, { method: "POST", body: JSON.stringify({}) });
-        await refresh({ force: true });
-      }
+      if (t.id === "add-block") el("plan-rows").insertAdjacentHTML("beforeend", blockHtml({ start: "09:00", end: "10:00", task: "" }));
+      if (t.classList && t.classList.contains("time-btn")) ClockPop(t, t.textContent.trim(), (v) => { t.textContent = v; });
+      if (t.dataset.act && t.dataset.id) { await api(`/api/approvals/${t.dataset.id}/${t.dataset.act}`, { method: "POST" }); await refresh({ force: true }); }
+      if (t.dataset.done) { alert((await api(`/api/rituals/${t.dataset.done}/done`, { method: "POST" })).praise); await refresh({ force: true }); }
+      if (t.id === "quiet-end" && lastToday && lastToday.quiet) { await api(`/api/quiet/${lastToday.quiet.id}`, { method: "DELETE" }); await refresh({ force: true }); }
+      if (t.dataset.join) { await api(`/api/meetings/${t.dataset.join}/join`, { method: "POST", body: JSON.stringify({}) }); await refresh({ force: true }); }
+      if (t.dataset.scroll) document.getElementById(t.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (t.classList && t.classList.contains("tab")) document.querySelectorAll(".tab").forEach((x) => x.classList.toggle("on", x === t));
     });
     document.body.addEventListener("change", async (e) => {
       const t = e.target;
       if (t.id === "plan-day") {
         planDay = t.value;
         viewPlanCache = { day: planDay, plan: await api("/api/plan?day=" + encodeURIComponent(planDay)) };
-        if (lastToday) {
-          lastToday.viewPlan = viewPlanCache.plan;
-          lastMain = "";
-          paintMain(lastToday);
-        }
+        if (lastToday) { lastToday.viewPlan = viewPlanCache.plan; lastMain = ""; paintMain(lastToday); }
         return;
       }
-      if (t.dataset.meet && t.dataset.k) {
-        const body = {};
-        body[t.dataset.k] = t.value;
-        await api(`/api/meetings/${t.dataset.meet}`, { method: "PATCH", body: JSON.stringify(body) });
-        await refresh({ force: true });
-      }
-      if (t.dataset.opp && t.dataset.stateSel) {
-        await api(`/api/opportunities/${t.dataset.opp}/state`, { method: "POST", body: JSON.stringify({ state: t.value }) });
-        await refresh({ force: true });
-      }
-      if (t.dataset.oppEdit && t.dataset.k) {
-        const body = {};
-        body[t.dataset.k] = t.value;
-        await api(`/api/opportunities/${t.dataset.oppEdit}`, { method: "PATCH", body: JSON.stringify(body) });
-        await refresh({ force: true });
-      }
+      if (t.dataset.meet && t.dataset.k) { const body = {}; body[t.dataset.k] = t.value; await api(`/api/meetings/${t.dataset.meet}`, { method: "PATCH", body: JSON.stringify(body) }); await refresh({ force: true }); }
+      if (t.dataset.opp && t.dataset.stateSel) { await api(`/api/opportunities/${t.dataset.opp}/state`, { method: "POST", body: JSON.stringify({ state: t.value }) }); await refresh({ force: true }); }
+      if (t.dataset.oppEdit && t.dataset.k) { const body = {}; body[t.dataset.k] = t.value; await api(`/api/opportunities/${t.dataset.oppEdit}`, { method: "PATCH", body: JSON.stringify(body) }); await refresh({ force: true }); }
     });
-
+    el("dash-search").addEventListener("input", (e) => filterPanels(e.target.value));
     el("fab-toggle").onclick = () => el("fab").classList.toggle("open");
     const chatKey = "timeless_chat";
     let thread = [];
     try { thread = JSON.parse(localStorage.getItem(chatKey) || "[]"); } catch (_) { thread = []; }
     function renderChat() {
-      if (!thread.length) {
-        el("log").innerHTML = `<div class="bubble bot">Hey. Ask about the day, or tell me to open something, add an event, or update the plan.</div>`;
-        return;
-      }
-      el("log").innerHTML = thread.map((m) =>
-        `<div class="bubble ${m.role === "user" ? "you" : "bot"}">${esc(m.content)}</div>`
-      ).join("");
+      el("log").innerHTML = thread.length
+        ? thread.map((m) => `<div class="bubble ${m.role === "user" ? "you" : "bot"}">${esc(m.content)}</div>`).join("")
+        : `<div class="bubble bot">Ask about your day, or tell me to do something.</div>`;
       el("log").scrollTop = el("log").scrollHeight;
     }
-    function saveChat() {
-      localStorage.setItem(chatKey, JSON.stringify(thread.slice(-40)));
-    }
+    function saveChat() { localStorage.setItem(chatKey, JSON.stringify(thread.slice(-40))); }
     async function sendChat(message) {
       message = (message || "").trim();
       if (!message) return;
       thread.push({ role: "user", content: message });
       renderChat();
-      el("log").insertAdjacentHTML("beforeend", `<div class="bubble bot busy" id="typing">…</div>`);
-      el("log").scrollTop = el("log").scrollHeight;
       el("q").value = "";
       el("ask").disabled = true;
       try {
-        const history = thread.slice(0, -1).map((m) => ({
-          role: m.role === "user" ? "user" : "assistant",
-          content: m.content,
-        }));
-        const r = await api("/api/chat", { method: "POST", body: JSON.stringify({ message, history }) });
-        const reply = (r.offline ? "(offline) " : "") + (r.reply || "");
-        thread.push({ role: "assistant", content: reply });
+        const r = await api("/api/chat", { method: "POST", body: JSON.stringify({ message, history: thread.slice(0, -1).map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.content })) }) });
+        thread.push({ role: "assistant", content: (r.offline ? "(offline) " : "") + (r.reply || "") });
         saveChat();
-      } catch (err) {
-        thread.push({ role: "assistant", content: err.message || "Could not reach the brain." });
-      }
+      } catch (err) { thread.push({ role: "assistant", content: err.message || "Could not reach the brain." }); }
       el("ask").disabled = false;
       renderChat();
       await refresh({ force: true });
     }
     renderChat();
     el("ask").onclick = () => sendChat(el("q").value);
-    el("q").addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendChat(el("q").value);
-      }
-    });
+    el("q").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(el("q").value); } });
     el("chat-clear").onclick = () => { thread = []; saveChat(); renderChat(); };
-    document.body.addEventListener("click", (e) => {
-      if (e.target.classList && e.target.classList.contains("hint")) sendChat(e.target.dataset.q);
-    });
+    document.body.addEventListener("click", (e) => { if (e.target.classList && e.target.classList.contains("hint")) sendChat(e.target.dataset.q); });
     async function phoneLink(mode) {
       const msg = el("phone-msg");
-      msg.textContent = mode === "usb" ? "Looking for USB…" : "Trying wireless (hotspot / saved IP)…";
+      msg.textContent = mode === "usb" ? "Looking for USB…" : "Trying wireless…";
       try {
         const r = await api("/api/phone/connect", { method: "POST", body: JSON.stringify({ mode }) });
-        msg.textContent = r.ok
-          ? `Linked (${mode}): ${(r.devices || []).join(", ") || "ok"}`
-          : (r.detail || "Phone not reachable. Skip recap still uses Mac data.");
-      } catch (err) {
-        msg.textContent = err.message || "Connect failed.";
-      }
+        msg.textContent = r.ok ? `Linked (${mode})` : (r.detail || "Phone not reachable.");
+      } catch (err) { msg.textContent = err.message || "Connect failed."; }
       await refresh({ force: true });
     }
     el("ph-w").onclick = () => phoneLink("wireless");
     el("ph-u").onclick = () => phoneLink("usb");
-
     el("focus-toggle").onclick = () => el("focus-box").classList.toggle("open");
-    el("focus-levels").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-level]");
-      if (!b) return;
-      focusLevel = b.dataset.level;
-      el("focus-levels").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
-    });
-    el("focus-durations").addEventListener("click", (e) => {
-      const b = e.target.closest("[data-min]");
-      if (!b) return;
-      focusMin = parseInt(b.dataset.min, 10);
-      el("focus-durations").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
-    });
-    el("focus-start").onclick = async () => {
-      await api("/api/quiet", {
-        method: "POST",
-        body: JSON.stringify({ level: focusLevel, minutes: focusMin }),
-      });
-      el("focus-box").classList.remove("open");
-      await refresh({ force: true });
-    };
-
+    el("focus-levels").addEventListener("click", (e) => { const b = e.target.closest("[data-level]"); if (!b) return; focusLevel = b.dataset.level; el("focus-levels").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); });
+    el("focus-durations").addEventListener("click", (e) => { const b = e.target.closest("[data-min]"); if (!b) return; focusMin = parseInt(b.dataset.min, 10); el("focus-durations").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); });
+    el("focus-start").onclick = async () => { await api("/api/quiet", { method: "POST", body: JSON.stringify({ level: focusLevel, minutes: focusMin }) }); el("focus-box").classList.remove("open"); await refresh({ force: true }); };
     refresh({ nav: true }).catch((err) => { el("status").textContent = "Brain offline — " + err.message; });
     setInterval(() => refresh().catch(() => {}), 8000);
   </script>

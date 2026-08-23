@@ -1,5 +1,5 @@
 (function () {
-  const DEFAULT = [196, 163, 90];
+  const DEFAULT = [157, 92, 255];
   const root = document.documentElement;
 
   function hex(r, g, b) {

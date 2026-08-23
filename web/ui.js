@@ -65,7 +65,7 @@
     toastTimer = setTimeout(() => box.classList.remove("show"), 3200);
   }
 
-  function sparkline(values, color, w, h) {
+  function sparkline(values, color, w, h, id) {
     const data = values.length ? values : [0];
     const max = Math.max(...data, 1);
     const min = Math.min(...data, 0);
@@ -77,8 +77,8 @@
     });
     const line = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
     const area = line + " L" + w + " " + h + " L0 " + h + " Z";
-    const gid = "sg" + Math.random().toString(36).slice(2, 8);
-    return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+    const gid = id || ("sg" + String(color).replace(/[^a-z0-9]/gi, ""));
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
       <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="${color}" stop-opacity="0.35"/>
         <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
@@ -94,8 +94,8 @@
     const pad = { l: 28, r: 8, t: 8, b: 22 };
     const innerW = w - pad.l - pad.r;
     const innerH = h - pad.t - pad.b;
-    const gap = 4;
-    const barW = Math.max(4, (innerW - gap * (data.length - 1)) / data.length);
+    const gap = Math.min(4, innerW / Math.max(data.length, 1) / 4);
+    const barW = Math.max(3, (innerW - gap * (data.length - 1)) / data.length);
     const bars = data.map((d, i) => {
       const bh = Math.max(2, ((d.count || 0) / max) * innerH);
       const x = pad.l + i * (barW + gap);
@@ -111,7 +111,7 @@
       const y = pad.t + innerH * (1 - f);
       return `<line x1="${pad.l}" y1="${y}" x2="${w - pad.r}" y2="${y}" class="chart-grid"/>`;
     }).join("");
-    return `<svg class="chart-bars" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${grid}${bars}${labels}</svg>`;
+    return `<svg class="chart-bars" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${grid}${bars}${labels}</svg>`;
   }
 
   function rangeBar(pct) {

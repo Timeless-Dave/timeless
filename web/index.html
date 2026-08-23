@@ -8,6 +8,7 @@
 </head>
 <body>
   <div class="app-shell">
+    <div class="shell-card">
     <nav class="rail" aria-label="Sections">
       <div class="rail-logo" aria-hidden="true">
         <svg viewBox="0 0 40 41" fill="none"><path d="M8 20c0-6.6 5.4-12 12-12s12 5.4 12 12-5.4 12-12 12" stroke="currentColor" stroke-width="3"/><path d="M20 8v24M8 20h24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
@@ -23,9 +24,7 @@
       <button type="button" class="rail-btn" data-scroll="dark-sensors" title="Sensors"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/></svg></button>
     </nav>
 
-    <div class="workspace">
-      <div class="shell-card">
-        <div class="page-wrap">
+    <div class="page-wrap">
           <header class="page-head">
             <div>
               <h1 class="page-title">Day overview</h1>
@@ -33,7 +32,6 @@
             </div>
             <div class="head-tools">
               <input type="search" id="dash-search" class="search" placeholder="Search" autocomplete="off" />
-              <button type="button" class="icon-btn" id="search-btn" aria-label="Search"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-3-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
               <div class="pop-wrap">
                 <button type="button" class="icon-btn" data-pop-toggle="notify-box" aria-label="Status"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3a5 5 0 00-5 5v3l-1.5 3H18.5L17 11V8a5 5 0 00-5-5z" stroke="currentColor" stroke-width="1.8"/><path d="M10 18a2 2 0 004 0" stroke="currentColor" stroke-width="1.8"/></svg></button>
                 <div class="pop" id="notify-box"><p id="status">Loading…</p></div>
@@ -185,7 +183,6 @@
             </aside>
           </div>
         </div>
-      </div>
     </div>
   </div>
 
@@ -221,9 +218,6 @@
     function esc(s) {
       return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     }
-    function ago(iso) {
-      return S.relTime(iso, Date.now()).replace(/^in /, "").includes("ago") ? S.relTime(iso) : S.relTime(iso);
-    }
     function when(iso) { return S.when(iso); }
     function parseTs(iso) { return S.parseTs(iso); }
 
@@ -256,7 +250,7 @@
           </div>
           <div class="metric-value-row"><span class="metric-value">${blocks}</span><span class="metric-unit">blocks</span></div>
           <span class="chip ${planTone}">${blocks ? "Scheduled" : "Empty plan"}</span>
-          <div class="metric-spark">${U.sparkline(series.length ? series : [blocks], "var(--pastel-amber-icon)", 173, 72)}</div>
+          <div class="metric-spark">${U.sparkline(series.length ? series : [blocks], "var(--pastel-amber-icon)", 173, 72, "spark-plan")}</div>
         </article>
         <article class="card metric-card">
           <div class="metric-top">
@@ -265,7 +259,7 @@
           </div>
           <div class="metric-value-row"><span class="metric-value">${events}</span><span class="metric-unit">items</span></div>
           <span class="chip ${eventTone}">${events ? "On calendar" : "Clear"}</span>
-          <div class="metric-spark">${U.sparkline(series, "var(--pastel-rose-icon)", 173, 72)}</div>
+          <div class="metric-spark">${U.sparkline(series, "var(--pastel-rose-icon)", 173, 72, "spark-events")}</div>
         </article>
         <article class="card metric-card">
           <div class="metric-top">
@@ -274,13 +268,19 @@
           </div>
           <div class="metric-value-row"><span class="metric-value">${approvals}</span><span class="metric-unit">pending</span></div>
           <span class="chip ${apprTone}">${approvals ? "Needs you" : "All clear"}</span>
-          <div class="metric-spark">${U.sparkline(series.map((v) => Math.min(v, approvals || 1)), "var(--pastel-cyan-icon)", 173, 72)}</div>
+          <div class="metric-spark">${U.sparkline(series.map((v) => Math.min(v, approvals || 1)), "var(--pastel-cyan-icon)", 173, 72, "spark-approvals")}</div>
         </article>`;
+    }
+
+    function chartWidth() {
+      const box = el("activity-chart");
+      if (!box) return 640;
+      return Math.max(280, Math.floor(box.clientWidth || box.parentElement?.clientWidth || 640));
     }
 
     function paintChart(t) {
       const days = (t.heatmap || []).slice(-18).map((d) => ({ label: d.day, count: d.count || 0 }));
-      el("activity-chart").innerHTML = U.barChart(days, 640, 220);
+      el("activity-chart").innerHTML = U.barChart(days, chartWidth(), 220);
     }
 
     function paintNext(t) {
@@ -360,6 +360,7 @@
 
     let lastMain = "";
     let lastSide = "";
+    let lastKpi = "";
     let lastToday = null;
     let planDay = "";
     let viewPlanCache = { day: "", plan: null };
@@ -419,6 +420,9 @@
       el("programs-count").textContent = String(t.opportunities.length);
       el("mail-count").textContent = String(t.mail.length);
       el("rituals-count").textContent = String(t.rituals.length);
+    }
+
+    function paintKpiStrip(t) {
       paintMetrics(t);
       paintChart(t);
       paintNext(t);
@@ -489,7 +493,21 @@
       if (editing() && !force) return;
       const main = JSON.stringify({ plan: t.plan, meetings: t.meetings, opps: t.opportunities, approvals: t.approvals, mail: t.mail, rituals: t.rituals, planDay });
       const side = JSON.stringify({ heat: t.heatmap, heart: t.heartbeats });
+      const kpi = JSON.stringify({
+        heat: t.heatmap,
+        plan: t.plan,
+        viewPlan: t.viewPlan,
+        meetings: t.meetings,
+        approvals: t.approvals.length,
+        quiet: t.quiet,
+        heartbeats: t.heartbeats,
+        opps: t.opportunities,
+        mail: t.mail,
+        planDay,
+        day: t.day,
+      });
       if (force || main !== lastMain) { lastMain = main; paintMain(t); }
+      if (force || kpi !== lastKpi) { lastKpi = kpi; paintKpiStrip(t); }
       if (force || side !== lastSide) { lastSide = side; await paintSide(t); }
       filterPanels(el("dash-search").value);
     }
@@ -524,10 +542,21 @@
       if (t.id === "quiet-end" && lastToday && lastToday.quiet) { await api(`/api/quiet/${lastToday.quiet.id}`, { method: "DELETE" }); await refresh({ force: true }); }
       if (t.dataset.join) { await api(`/api/meetings/${t.dataset.join}/join`, { method: "POST", body: JSON.stringify({}) }); await refresh({ force: true }); }
       if (t.dataset.scroll) {
-        document.getElementById(t.dataset.scroll)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        const target = document.getElementById(t.dataset.scroll);
+        if (target) {
+          const narrow = window.matchMedia("(max-width: 1100px)").matches;
+          const scroller = narrow
+            ? document.querySelector(".page-body")
+            : (target.closest(".dark-panel") ? document.querySelector(".dark-panel") : document.querySelector(".main-col"));
+          if (scroller) {
+            const top = target.getBoundingClientRect().top + scroller.scrollTop - scroller.getBoundingClientRect().top - 12;
+            scroller.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+          } else {
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }
         document.querySelectorAll(".rail-btn").forEach((x) => x.classList.toggle("on", x.dataset.scroll === t.dataset.scroll));
       }
-      if (t.id === "search-btn") el("dash-search").focus();
     });
 
     document.body.addEventListener("change", async (e) => {
@@ -535,7 +564,7 @@
       if (t.id === "plan-day") {
         planDay = t.value;
         viewPlanCache = { day: planDay, plan: await api("/api/plan?day=" + encodeURIComponent(planDay)) };
-        if (lastToday) { lastToday.viewPlan = viewPlanCache.plan; lastMain = ""; paintMain(lastToday); }
+        if (lastToday) { lastToday.viewPlan = viewPlanCache.plan; lastMain = ""; lastKpi = ""; paintMain(lastToday); paintKpiStrip(lastToday); }
         return;
       }
       if (t.dataset.meet && t.dataset.k) { const body = {}; body[t.dataset.k] = t.value; await api(`/api/meetings/${t.dataset.meet}`, { method: "PATCH", body: JSON.stringify(body) }); await refresh({ force: true }); }
@@ -597,6 +626,11 @@
 
     refresh({ nav: true }).catch((err) => { el("status").textContent = "Brain offline — " + err.message; });
     setInterval(() => refresh().catch(() => {}), 8000);
+    let chartTimer = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(chartTimer);
+      chartTimer = setTimeout(() => { if (lastToday) paintChart(lastToday); }, 150);
+    });
   </script>
 </body>
 </html>

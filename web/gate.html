@@ -6,7 +6,7 @@
   <title>Timeless — daily gate</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
-<body>
+<body class="gate-page">
   <div class="overlay">
     <div class="panel card">
       <p class="shell-kicker">Daily gate</p>
@@ -16,11 +16,16 @@
         <label class="compact-label" for="plan-day">Day</label>
         <input type="date" id="plan-day" class="inline-date" />
       </div>
-      <label class="compact-label" for="outcomes">What done means</label>
-      <textarea id="outcomes" class="compact-area" rows="3" placeholder="In plain words, what finished looks like" autofocus></textarea>
+      <div class="shell-section goal-section">
+        <div class="goal-section-head">
+          <div><p class="shell-section-head">Today's wins</p><p class="sub">Keep it concrete. Three clear wins is usually enough.</p></div>
+          <button type="button" class="ghost compact-add" id="add-goal">+ Goal</button>
+        </div>
+        <div id="goals" class="goal-list"></div>
+      </div>
       <div class="shell-section">
         <p class="shell-section-head">Time blocks</p>
-        <p class="sub" style="margin:0 0 0.45rem">Drag the clock hands like an alarm. Inner ring is the hour, outer ring is the minute.</p>
+        <p class="sub" style="margin:0 0 0.45rem">Give each win a place in the day. You can add more later.</p>
         <div id="blocks"></div>
       </div>
       <div class="plan-actions">
@@ -37,14 +42,27 @@
   <script src="/static/clock.js"></script>
   <script>
     let today = "";
+    function goalEl(value) {
+      const row = document.createElement("div");
+      row.className = "goal-row";
+      row.innerHTML = `<span class="goal-number" aria-hidden="true"></span><input class="goal-input" placeholder="e.g. Submit two applications" value="${(value || "").replace(/&/g, "&amp;").replace(/\"/g, "&quot;")}" /><button type="button" class="goal-remove ghost" aria-label="Remove goal">×</button>`;
+      row.querySelector(".goal-remove").onclick = () => { row.remove(); numberGoals(); };
+      return row;
+    }
+    function numberGoals() {
+      [...el("goals").children].forEach((row, i) => { row.querySelector(".goal-number").textContent = i + 1; });
+    }
+    function addGoal(value, focus) {
+      const row = goalEl(value);
+      el("goals").appendChild(row);
+      numberGoals();
+      if (focus) row.querySelector("input").focus();
+    }
     function blockEl(start, end, task) {
       const wrap = document.createElement("div");
-      wrap.className = "block-row block-analog";
-      wrap.innerHTML = `<div><label>Start</label><div data-start></div></div>
-        <div><label>End</label><div data-end></div></div>
-        <input class="task" placeholder="What you'll do" value="${(task || "").replace(/"/g, "&quot;")}" />`;
-      wrap._start = AnalogClock(wrap.querySelector("[data-start]"), { value: start || "09:00" });
-      wrap._end = AnalogClock(wrap.querySelector("[data-end]"), { value: end || "10:00" });
+      wrap.className = "gate-block-row";
+      wrap.innerHTML = `<label><span>Start</span><input type="time" class="block-time start" value="${start || "09:00"}" /></label><label><span>End</span><input type="time" class="block-time end" value="${end || "10:00"}" /></label><label class="block-task"><span>Focus</span><input class="task" placeholder="What you'll do" value="${(task || "").replace(/"/g, "&quot;")}" /></label><button type="button" class="goal-remove ghost" aria-label="Remove time block">×</button>`;
+      wrap.querySelector("button").onclick = () => wrap.remove();
       return wrap;
     }
     function addBlock(start, end, task) {
@@ -52,21 +70,24 @@
     }
     async function loadDay(day) {
       const p = await api("/api/plan?day=" + encodeURIComponent(day));
-      el("outcomes").value = p.outcomes || "";
+      el("goals").innerHTML = "";
+      const goals = String(p.outcomes || "").split("\n").map((g) => g.replace(/^\s*(?:[-•]|\d+[.)])\s*/, "").trim()).filter(Boolean);
+      (goals.length ? goals : [""]).forEach((g) => addGoal(g));
       el("blocks").innerHTML = "";
       const tl = p.timeline || [];
       if (tl.length) tl.forEach((b) => addBlock(b.start, b.end, b.task));
       else addBlock("09:00", "10:00", "");
     }
     el("add-block").onclick = () => addBlock("09:00", "10:00", "");
+    el("add-goal").onclick = () => addGoal("", true);
     el("plan-day").onchange = () => loadDay(el("plan-day").value);
     el("lock").onclick = async () => {
       el("err").textContent = "";
       const day = el("plan-day").value;
-      const outcomes = el("outcomes").value;
+      const outcomes = [...document.querySelectorAll(".goal-input")].map((input) => input.value.trim()).filter(Boolean).join("\n");
       const timeline = [...el("blocks").children].map((row) => ({
-        start: row._start.value(),
-        end: row._end.value(),
+        start: row.querySelector(".start").value,
+        end: row.querySelector(".end").value,
         task: row.querySelector(".task").value,
       })).filter((b) => b.task.trim());
       try {

@@ -107,7 +107,7 @@
               <section class="card panel" id="panel-programs">
                 <div class="card-head">
                   <h2>Programs</h2>
-                  <span class="count-chip" id="programs-count"></span>
+                  <div class="card-tools"><button type="button" class="ghost small-btn" id="export-programs">Export CSV</button><span class="count-chip" id="programs-count"></span></div>
                 </div>
                 <p class="card-lead" id="programs-summary"></p>
                 <div class="scroll" id="opps"></div>
@@ -530,9 +530,24 @@
       await refresh({ force: true });
     }
 
+    function exportPrograms() {
+      const rows = (lastToday && lastToday.opportunities) || [];
+      if (!rows.length) { U.toast("Nothing to export yet."); return; }
+      const columns = ["company", "role", "kind", "state", "deadline_at", "url", "source", "updated_at"];
+      const csvCell = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+      const csv = [columns, ...rows.map((row) => columns.map((key) => row[key]))].map((row) => row.map(csvCell).join(",")).join("\n");
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      link.download = `timeless-programs-${lastToday.day}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      U.toast("CSV ready for Google Sheets.", "mint");
+    }
+
     document.body.addEventListener("click", async (e) => {
       const t = e.target;
       if (t.id === "save-plan") await savePlan();
+      if (t.id === "export-programs") exportPrograms();
       if (t.id === "add-block") el("plan-rows").insertAdjacentHTML("beforeend", blockHtml({ start: "09:00", end: "10:00", task: "" }));
       if (t.classList && t.classList.contains("time-btn")) ClockPop(t, t.textContent.trim(), (v) => { t.textContent = v; });
       if (t.dataset.act && t.dataset.id) { await api(`/api/approvals/${t.dataset.id}/${t.dataset.act}`, { method: "POST" }); U.toast("Approval updated."); await refresh({ force: true }); }

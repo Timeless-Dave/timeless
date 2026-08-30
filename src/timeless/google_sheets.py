@@ -96,6 +96,7 @@ class GoogleSheets:
             "spreadsheet_id": spreadsheet_id,
             "spreadsheet_url": f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit" if spreadsheet_id else None,
             "last_synced_at": self.store.get_setting("google_last_synced_at"),
+            "dirty": self.store.get_setting("google_tracker_dirty") == "1",
             "mode": "publish",
         }
 
@@ -193,6 +194,7 @@ class GoogleSheets:
             self._raise(update, "Could not update the tracker sheet")
             synced_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             self.store.set_setting("google_last_synced_at", synced_at)
+            self.store.set_setting("google_tracker_dirty", "0")
             return {**self.status(), "rows": len(opportunities)}
         finally:
             self._sync_lock.release()

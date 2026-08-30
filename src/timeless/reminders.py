@@ -11,6 +11,16 @@ def reminder_fires(
     present: datetime | None = None,
 ) -> list[tuple[str, datetime]]:
     fires: list[tuple[str, datetime]] = []
+    if kind == "calendar_note":
+        return []
+    if kind == "course":
+        return [("course_15m", start - timedelta(minutes=15))]
+    if kind == "deadline":
+        return [
+            ("deadline_7d", start - timedelta(days=7)),
+            ("deadline_1d", start - timedelta(days=1)),
+            ("deadline_4h", start - timedelta(hours=4)),
+        ]
     if kind == "hackathon":
         fires.append(("start_1d", start - timedelta(days=1)))
         if modality == "virtual":

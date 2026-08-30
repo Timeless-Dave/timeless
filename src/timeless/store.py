@@ -5,12 +5,13 @@ import re
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from timeless.classify_event import classify_event, looks_like_presentation, looks_like_submission, mail_matches_event, pick_join_url
-from timeless.clock import day_key, due_recap_day, utc_now
+from timeless.classify_event import URL_RE, classify_event, is_join_url, looks_like_presentation, looks_like_submission, mail_matches_event, pick_join_url
+from timeless.clock import day_key, due_recap_day, utc_now, zone
 from timeless.db import connect
-from timeless.ingest import classify_screen_text, looks_like_job_url
+from timeless.ingest import canonicalize_program_url, classify_screen_text, program_kind_for_url
 from timeless.mailer import first_url, parse_when, program_kind
 from timeless.praise import praise_for
+from timeless.productivity import classify_activity, productivity_summary
 from timeless.quiet import PANIC_MINUTES, QUIET_LEVELS, blocks_halt, end_from_minutes, iso as quiet_iso, parse_iso, quiet_public
 from timeless.reminders import reminder_fires
 
@@ -65,6 +66,46 @@ class Store:
         )
         self.conn.commit()
         return int(cur.lastrowid)
+
+    def add_activity(
+        self,
+        *,
+        source: str,
+        source_id: str,
+        ts: str,
+        duration_seconds: float,
+        app: str | None = None,
+        host: str | None = None,
+        title: str | None = None,
+    ) -> dict[str, Any]:
+        timestamp = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        category, productivity = classify_activity(app, title, host)
+        self.conn.execute(
+            """INSERT INTO activity_samples(source, source_id, ts, duration_seconds, app, host, title, category, productivity)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(source, source_id) DO UPDATE SET
+                 ts=excluded.ts, duration_seconds=excluded.duration_seconds, app=excluded.app,
+                 host=excluded.host, title=excluded.title, category=excluded.category,
+                 productivity=excluded.productivity""",
+            (source[:40], source_id[:240], _iso(timestamp), max(0.0, min(float(duration_seconds), 86400.0)), (app or "")[:120], (host or "")[:200], (title or "")[:240], category, productivity),
+        )
+        self.conn.commit()
+        row = self.conn.execute("SELECT * FROM activity_samples WHERE source=? AND source_id=?", (source[:40], source_id[:240])).fetchone()
+        return row_to_dict(row)
+
+    def activities_on_day(self, day: str) -> list[dict[str, Any]]:
+        try:
+            local_start = datetime.strptime(day, "%Y-%m-%d").replace(tzinfo=zone())
+        except ValueError:
+            return []
+        start = _iso(local_start.astimezone(timezone.utc))
+        end = _iso((local_start + timedelta(days=1)).astimezone(timezone.utc))
+        return [row_to_dict(row) for row in self.conn.execute("SELECT * FROM activity_samples WHERE ts>=? AND ts<? ORDER BY ts", (start, end))]
+
+    def productivity_on_day(self, day: str) -> dict[str, Any]:
+        return productivity_summary(self.activities_on_day(day), self.get_plan(day))
 
     def latest_event_age_seconds(self) -> float | None:
         row = self.conn.execute("SELECT ts FROM events ORDER BY ts DESC LIMIT 1").fetchone()
@@ -160,6 +201,8 @@ class Store:
         deadline_at: str | None = None,
         source: str = "url",
     ) -> dict[str, Any]:
+        if url.startswith(("http://", "https://")):
+            url = canonicalize_program_url(url)
         if state not in VALID_STATES:
             raise ValueError("bad state")
         if kind not in VALID_KINDS:
@@ -176,7 +219,10 @@ class Store:
                 (company, role, deadline_at, kind, now, row["id"]),
             )
             self.conn.commit()
-            return row_to_dict(self.conn.execute("SELECT * FROM opportunities WHERE id=?", (row["id"],)).fetchone())
+            out = row_to_dict(self.conn.execute("SELECT * FROM opportunities WHERE id=?", (row["id"],)).fetchone())
+            self.set_setting("google_tracker_dirty", "1")
+            self._sync_opportunity_deadline(out)
+            return out
         cur = self.conn.execute(
             """
             INSERT INTO opportunities(company, role, url, state, kind, deadline_at, source, created_at, updated_at)
@@ -185,7 +231,38 @@ class Store:
             (company, role, url, state, kind, deadline_at, source, now, now),
         )
         self.conn.commit()
-        return row_to_dict(self.conn.execute("SELECT * FROM opportunities WHERE id=?", (cur.lastrowid,)).fetchone())
+        out = row_to_dict(self.conn.execute("SELECT * FROM opportunities WHERE id=?", (cur.lastrowid,)).fetchone())
+        self.set_setting("google_tracker_dirty", "1")
+        self._sync_opportunity_deadline(out)
+        return out
+
+    def _sync_opportunity_deadline(self, opportunity: dict[str, Any]) -> None:
+        uid = f"opportunity:{opportunity['id']}:deadline"
+        raw = (opportunity.get("deadline_at") or "").strip()
+        if not raw:
+            self.conn.execute("DELETE FROM reminders WHERE event_uid=?", (uid,))
+            self.conn.execute("DELETE FROM meetings WHERE uid=?", (uid,))
+            self.conn.commit()
+            return
+        try:
+            deadline = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError:
+            return
+        if deadline.tzinfo is None:
+            if len(raw) == 10:
+                deadline = deadline.replace(hour=17, minute=0)
+            deadline = deadline.replace(tzinfo=zone())
+        deadline = deadline.astimezone(timezone.utc)
+        self.upsert_meeting(
+            uid=uid,
+            title=f"Deadline · {opportunity.get('role') or opportunity.get('company') or 'Program'}",
+            start_at=_iso(deadline),
+            end_at=_iso(deadline + timedelta(minutes=30)),
+            notes=opportunity.get("url"),
+            kind="deadline",
+            modality="virtual",
+            reminder_only=True,
+        )
 
     def set_opportunity_state(self, opportunity_id: int, state: str, kind: str | None = None) -> dict[str, Any]:
         if state not in VALID_STATES:
@@ -202,6 +279,7 @@ class Store:
         row = self.conn.execute("SELECT * FROM opportunities WHERE id=?", (opportunity_id,)).fetchone()
         if not row:
             raise ValueError("unknown opportunity")
+        self.set_setting("google_tracker_dirty", "1")
         return row_to_dict(row)
 
     def patch_opportunity(
@@ -233,7 +311,10 @@ class Store:
             (company, role, kind, url, deadline_at, _iso(), opportunity_id),
         )
         self.conn.commit()
-        return row_to_dict(self.conn.execute("SELECT * FROM opportunities WHERE id=?", (opportunity_id,)).fetchone())
+        out = row_to_dict(self.conn.execute("SELECT * FROM opportunities WHERE id=?", (opportunity_id,)).fetchone())
+        self.set_setting("google_tracker_dirty", "1")
+        self._sync_opportunity_deadline(out)
+        return out
 
     def list_opportunities(self) -> list[dict[str, Any]]:
         return [row_to_dict(r) for r in self.conn.execute("SELECT * FROM opportunities ORDER BY updated_at DESC")]
@@ -357,16 +438,17 @@ class Store:
 
     def ingest_url(self, url: str, title: str | None = None, source: str = "url") -> dict[str, Any]:
         src = "phone" if source == "phone" else "url"
-        self.add_event(src, title or url, {"url": url, "title": title})
+        kind = program_kind_for_url(url, title)
         if src == "phone":
-            self.heartbeat("phone_aw", url)
+            self.heartbeat("phone_aw", "browser activity received")
         else:
-            self.heartbeat("mac_browser", url)
-        if not looks_like_job_url(url):
-            return {"job": False, "url": url}
-        company = title or url
-        opp = self.upsert_opportunity(url=url, role=title, company=None, source="url")
-        return {"job": True, "opportunity": opp, "company": company}
+            self.heartbeat("mac_browser", "browser activity received")
+        if not kind:
+            return {"job": False, "tracked": False, "url": url}
+        clean_url = canonicalize_program_url(url)
+        self.add_event(src, title or clean_url, {"url": clean_url, "title": title, "kind": kind})
+        opp = self.upsert_opportunity(url=clean_url, role=title, company=None, kind=kind, source="url")
+        return {"job": kind == "internship", "tracked": True, "kind": kind, "opportunity": opp}
 
     def ingest_screen_text(self, text: str, url: str | None = None) -> dict[str, Any]:
         kind = classify_screen_text(text)
@@ -425,6 +507,15 @@ class Store:
         blob = f"{subject} {card}"
         url = first_url(blob) or f"mail:{message_id}"
         kind = program_kind(classification)
+        if not kind and url.startswith(("http://", "https://")):
+            kind = program_kind_for_url(url, blob)
+        if not kind:
+            guessed_kind, _ = classify_event(blob, None, None)
+            kind = guessed_kind if guessed_kind in {"hackathon", "conference"} else None
+        if kind and is_join_url(url):
+            url = f"mail:{message_id}"
+        when = parse_when(blob)
+        deadline_at = _iso(when) if when and looks_like_submission(blob) else None
         if kind:
             state = "seen"
             if classification == "interview":
@@ -436,11 +527,10 @@ class Store:
                 if classification in {"interview", "rejection"}:
                     self.set_opportunity_state(existing["id"], state, kind)
                 else:
-                    self.upsert_opportunity(url=url, role=subject, kind=kind, source="mail")
+                    self.upsert_opportunity(url=url, role=subject, kind=kind, deadline_at=deadline_at, source="mail")
             else:
-                self.upsert_opportunity(url=url, role=subject, kind=kind, state=state, source="mail")
-        when = parse_when(blob)
-        if when and (kind in {"hackathon", "conference"} or classification in {"hackathon", "conference"}):
+                self.upsert_opportunity(url=url, role=subject, kind=kind, state=state, deadline_at=deadline_at, source="mail")
+        if when and (kind in {"hackathon", "conference"} or classification in {"hackathon", "conference", "interview"}):
             join = pick_join_url(blob)
             end = when + timedelta(hours=2)
             self.upsert_meeting(
@@ -450,7 +540,7 @@ class Store:
                 end_at=_iso(end),
                 join_url=join,
                 notes=card,
-                kind=kind or "conference",
+                kind="interview" if classification == "interview" else (kind or "conference"),
                 modality="virtual" if join else None,
             )
 
@@ -482,6 +572,7 @@ class Store:
         notes: str | None = None,
         kind: str | None = None,
         modality: str | None = None,
+        reminder_only: bool = False,
     ) -> dict[str, Any]:
         existing = self.conn.execute("SELECT * FROM meetings WHERE uid=?", (uid,)).fetchone()
         locked = bool(existing["join_locked"]) if existing else False
@@ -494,14 +585,14 @@ class Store:
             lock_val = existing["join_locked"] if existing else 0
         self.conn.execute(
             """
-            INSERT INTO meetings(uid, title, start_at, end_at, join_url, join_locked, location, notes, ack, acked_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
+            INSERT INTO meetings(uid, title, start_at, end_at, join_url, join_locked, location, notes, reminder_only, ack, acked_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)
             ON CONFLICT(uid) DO UPDATE SET
                 title=excluded.title, start_at=excluded.start_at, end_at=excluded.end_at,
                 join_url=excluded.join_url, join_locked=excluded.join_locked,
-                location=excluded.location, notes=excluded.notes
+                location=excluded.location, notes=excluded.notes, reminder_only=excluded.reminder_only
             """,
-            (uid, title, start_at, end_at, stored_join, lock_val, location, notes),
+            (uid, title, start_at, end_at, stored_join, lock_val, location, notes, int(reminder_only)),
         )
         self.conn.commit()
         row = row_to_dict(self.conn.execute("SELECT * FROM meetings WHERE uid=?", (uid,)).fetchone())
@@ -509,10 +600,25 @@ class Store:
             guess_kind, guess_mod = classify_event(title, stored_join, location, notes)
             kind = kind or guess_kind
             modality = modality or guess_mod
-            self.conn.execute("UPDATE meetings SET kind=?, modality=? WHERE uid=?", (kind, modality, uid))
+            reminder_only = reminder_only or kind in {"deadline", "calendar_note"}
+            self.conn.execute("UPDATE meetings SET kind=?, modality=?, reminder_only=? WHERE uid=?", (kind, modality, int(reminder_only), uid))
             self.conn.commit()
         self.sync_reminders(uid)
-        return row_to_dict(self.conn.execute("SELECT * FROM meetings WHERE uid=?", (uid,)).fetchone())
+        out = row_to_dict(self.conn.execute("SELECT * FROM meetings WHERE uid=?", (uid,)).fetchone())
+        if not reminder_only and out.get("kind") in {"hackathon", "conference"}:
+            program_url = None
+            for match in URL_RE.finditer(" ".join(x for x in (notes, location) if x)):
+                candidate = match.group(0).rstrip(").,")
+                if not is_join_url(candidate):
+                    program_url = candidate
+                    break
+            self.upsert_opportunity(
+                url=program_url or (uid if uid.startswith("mail:") else f"calendar:{uid}"),
+                role=title,
+                kind=out["kind"],
+                source="calendar" if not uid.startswith("mail:") else "mail",
+            )
+        return out
 
     def patch_meeting(
         self,
@@ -561,6 +667,15 @@ class Store:
             fires = [("present_30m", start - timedelta(minutes=30))]
         else:
             fires = reminder_fires(kind, modality, start, submit=submit, present=present)
+        purposes = [purpose for purpose, _ in fires]
+        if purposes:
+            placeholders = ",".join("?" for _ in purposes)
+            self.conn.execute(
+                f"DELETE FROM reminders WHERE event_uid=? AND acked_at IS NULL AND purpose NOT IN ({placeholders})",
+                (uid, *purposes),
+            )
+        else:
+            self.conn.execute("DELETE FROM reminders WHERE event_uid=? AND acked_at IS NULL", (uid,))
         for purpose, due in fires:
             self.conn.execute(
                 """
@@ -728,8 +843,10 @@ class Store:
         join_url = self._meeting_join_url(meeting) or out.get("join_url")
         modality = (meeting.get("modality") or out.get("modality") or "virtual").lower()
         physical = modality == "physical"
+        reminder = out.get("halt_kind") == "reminder"
         out["requires_join"] = bool(join_url) and not physical
-        out["can_im_in"] = not out["requires_join"]
+        out["can_im_in"] = not reminder and not out["requires_join"]
+        out["can_headed"] = reminder and physical and out.get("purpose") == "start_2h"
         if out["requires_join"]:
             out["im_in_hint"] = "Join opens the meeting link. I'm in is disabled for virtual calls."
         elif physical:
@@ -780,19 +897,26 @@ class Store:
         ).fetchone()
         if not row:
             return None
-        data = self._enrich_halt(row_to_dict(row))
+        data = row_to_dict(row)
         data["halt_kind"] = "reminder"
-        return data
+        return self._enrich_halt(data)
 
     def ack_reminder(self, reminder_id: int, action: str, kind: str | None = None, modality: str | None = None) -> dict[str, Any]:
         row = self.conn.execute("SELECT * FROM reminders WHERE id=?", (reminder_id,)).fetchone()
         if not row:
             raise ValueError("unknown reminder")
+        if action not in {"confirm", "change", "headed", "dismiss", "im_in"}:
+            raise ValueError("unsupported reminder action")
+        if action == "headed":
+            meeting = self.conn.execute("SELECT modality FROM meetings WHERE uid=?", (row["event_uid"],)).fetchone()
+            if row["purpose"] != "start_2h" or not meeting or meeting["modality"] != "physical":
+                raise ValueError("headed is only available for the two-hour physical reminder")
         if action in {"confirm", "change"}:
             self.conn.execute(
                 "UPDATE meetings SET kind=COALESCE(?, kind), modality=COALESCE(?, modality), confirmed=1 WHERE uid=?",
                 (kind, modality, row["event_uid"]),
             )
+            self.conn.execute("UPDATE reminders SET acked_at=? WHERE id=? AND acked_at IS NULL", (_iso(), reminder_id))
             self.sync_reminders(row["event_uid"])
             self.conn.commit()
             return self.due_reminder() or row_to_dict(row)
@@ -808,6 +932,9 @@ class Store:
             raise ValueError("unknown meeting")
         data = row_to_dict(row)
         if action == "im_in":
+            start = parse_iso(data["start_at"])
+            if _now() < start.astimezone(timezone.utc) - timedelta(minutes=15):
+                raise ValueError("check-in opens 15 minutes before the event")
             join_url = self._meeting_join_url(data)
             virtual = (data.get("modality") or "virtual").lower() != "physical"
             if join_url and virtual:
@@ -841,7 +968,7 @@ class Store:
         row = self.conn.execute(
             """
             SELECT * FROM meetings
-            WHERE ack IS NULL AND start_at <= ? AND end_at > ?
+            WHERE ack IS NULL AND reminder_only=0 AND start_at <= ? AND end_at > ?
             ORDER BY start_at LIMIT 1
             """,
             (now_s, now_s),
@@ -867,7 +994,7 @@ class Store:
         return raw
 
     def list_meetings(self) -> list[dict[str, Any]]:
-        return [row_to_dict(r) for r in self.conn.execute("SELECT * FROM meetings ORDER BY start_at")]
+        return [row_to_dict(r) for r in self.conn.execute("SELECT * FROM meetings WHERE reminder_only=0 ORDER BY start_at")]
 
     def needs_gate(self, day: str | None = None) -> bool:
         return self.get_plan(day) is None

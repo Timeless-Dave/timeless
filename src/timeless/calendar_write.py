@@ -40,3 +40,21 @@ def create_calendar_event(
         return {"ok": True, "uid": uid}
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
+
+
+def sync_calendar_events(events: list[dict[str, Any]]) -> dict[str, Any]:
+    if os.environ.get("TIMELESS_SKIP_CAL"):
+        return {"ok": False, "error": "calendar write skipped"}
+    if not BIN.exists():
+        return {"ok": False, "error": "TimelessCal missing; run scripts/build-cal.sh"}
+    try:
+        out = subprocess.check_output(
+            [str(BIN), "sync"],
+            input=json.dumps({"events": events}).encode(),
+            timeout=45,
+            stderr=subprocess.STDOUT,
+        )
+        result = json.loads(out.decode("utf-8", "replace").strip().splitlines()[-1])
+        return {"ok": True, **result}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc)}

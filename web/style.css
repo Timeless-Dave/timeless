@@ -291,9 +291,22 @@ a:hover { text-decoration: underline; }
 /* —— Metric cards —— */
 .metric-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
 }
+.productivity-card { box-shadow: none; }
+.alignment-bar { display: flex; width: 100%; height: 12px; overflow: hidden; border-radius: 99px; background: var(--line-soft); }
+.alignment-bar span { min-width: 0; }
+.alignment-bar .aligned, .alignment-legend .aligned { background: var(--pastel-mint-icon); }
+.alignment-bar .offplan, .alignment-legend .offplan { background: var(--pastel-cyan-icon); }
+.alignment-bar .distracting, .alignment-legend .distracting { background: var(--danger); }
+.alignment-bar .unknown, .alignment-legend .unknown { background: var(--axis); }
+.alignment-legend { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .5rem; margin-top: .75rem; }
+.alignment-legend span { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: .35rem; align-items: center; color: var(--muted); font-size: 12px; }
+.alignment-legend i { width: 8px; height: 8px; border-radius: 50%; }
+.alignment-legend strong { color: var(--ink); }
+.activity-evidence { list-style: none; padding: .75rem 0 0; margin: .75rem 0 0; border-top: 1px solid var(--line-soft); display: grid; gap: .4rem; }
+.activity-evidence li { display: flex; align-items: center; justify-content: space-between; gap: .75rem; font-size: 14px; }
 .metric-card {
   padding: 1.15rem 1.25rem 0.85rem;
   min-height: 0;
@@ -919,6 +932,11 @@ input:focus, textarea:focus, select:focus {
 .goal-section-head .sub { margin: .1rem 0 .55rem; }
 .compact-add { flex: 0 0 auto; padding: .35rem .65rem; font-size: 13px; }
 .goal-list { display: flex; flex-direction: column; gap: .45rem; }
+.preset-chips { display: flex; gap: .4rem; overflow-x: auto; padding: .1rem 0 .65rem; scrollbar-width: thin; }
+.preset-chip { flex: 0 0 auto; padding: .38rem .7rem; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--body); font-size: 13px; font-weight: 600; }
+.preset-chip:hover { background: var(--pastel-amber); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.semester-strip { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .65rem .75rem; margin-bottom: .65rem; border-radius: var(--radius-chip); background: var(--bg); color: var(--muted); font-size: 13px; }
+.semester-strip strong { color: var(--ink); }
 .goal-row { display: grid; grid-template-columns: 1.8rem minmax(0, 1fr) 2.25rem; gap: .45rem; align-items: center; }
 .goal-number { width: 1.7rem; height: 1.7rem; border-radius: 50%; display: grid; place-items: center; background: var(--pastel-amber); color: var(--ink); font-size: 12px; font-weight: 700; }
 .goal-input { width: 100%; padding: .65rem .75rem; }
@@ -1038,12 +1056,12 @@ input:focus, textarea:focus, select:focus {
     border-left: 0;
     border-top: 1px solid var(--panel-divider);
   }
-  .metric-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .metric-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tracker-add { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .tracker-add #new-url { grid-column: 1 / -1; }
 }
 @media (max-width: 900px) {
-  .metric-row { grid-template-columns: repeat(3, minmax(0, 1fr)); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: .25rem; }
+  .metric-row { grid-template-columns: repeat(4, minmax(240px, 1fr)); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: .25rem; }
   .metric-card { min-width: 240px; scroll-snap-align: start; }
   .metric-card { min-height: 0; }
   .tile-row { grid-template-columns: 1fr; }
@@ -1078,6 +1096,7 @@ input:focus, textarea:focus, select:focus {
   .tracker-table { min-width: 0; }
   .tracker-table td { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: .5rem; align-items: center; }
   .tracker-table td::before { content: attr(data-label); color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+  .alignment-legend { grid-template-columns: 1fr 1fr; }
   .gate-page .overlay { align-items: stretch; padding: 0; }
   .gate-page .overlay .panel.card { width: 100%; max-height: 100dvh; min-height: 100dvh; border: 0; border-radius: 0; padding: 1rem; padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
   .gate-block-row { grid-template-columns: 1fr 1fr 2.25rem; }

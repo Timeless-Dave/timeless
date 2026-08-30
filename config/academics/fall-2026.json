@@ -1,0 +1,42 @@
+{
+  "id": "uapb-fall-2026",
+  "name": "UAPB Fall 2026",
+  "starts_on": "2026-08-24",
+  "instruction_ends_on": "2026-12-04",
+  "term_ends_on": "2026-12-11",
+  "source": "Workday course schedule and UAPB 2026–2027 Academic Calendar, published June 1, 2026",
+  "no_class_dates": [
+    "2026-09-07",
+    "2026-10-29",
+    "2026-10-30",
+    "2026-11-25",
+    "2026-11-26",
+    "2026-11-27"
+  ],
+  "courses": [
+    {"code": "IDST 12001", "title": "Career/Life Planning", "days": ["WE"], "start": "12:00", "end": "12:50", "location": "Corbin Hall 144", "preset": "Career planning"},
+    {"code": "ENGL 10203", "title": "English Composition II", "days": ["MO", "WE", "FR"], "start": "14:00", "end": "14:50", "location": "Dawson Hicks Hall 213", "preset": "English Composition II"},
+    {"code": "MATH 22095", "title": "Calculus II", "days": ["MO", "TU", "WE", "TH", "FR"], "start": "10:00", "end": "10:50", "location": "Henderson Young Hall 215", "preset": "Calculus II"},
+    {"code": "CPSI 25292", "title": "Computer Organization/Programming", "days": ["MO", "WE"], "start": "11:00", "end": "11:50", "location": "STEM Building 103", "preset": "Computer Organization"},
+    {"code": "CPSI 25191", "title": "Computer Organization/Programming Lab", "days": ["FR"], "start": "11:00", "end": "11:50", "location": "STEM Building 103", "preset": "Computer Organization lab"},
+    {"code": "CPSI 20193", "title": "Computer Science II", "days": ["MO", "WE", "FR"], "start": "09:00", "end": "09:50", "location": "STEM Building 103", "preset": "Computer Science II"}
+  ],
+  "academic_dates": [
+    {"date": "2026-08-24", "title": "First day of Fall instruction", "kind": "milestone"},
+    {"date": "2026-08-28", "title": "Last day to register or adjust schedule", "kind": "deadline"},
+    {"date": "2026-09-07", "title": "Labor Day — no classes", "kind": "no_class"},
+    {"date": "2026-09-21", "title": "Early academic warning begins", "kind": "milestone"},
+    {"start_date": "2026-10-05", "end_date": "2026-10-09", "title": "Mid-Term Week", "kind": "academic"},
+    {"date": "2026-10-12", "title": "Mid-term grades due", "kind": "milestone"},
+    {"start_date": "2026-10-19", "end_date": "2026-10-23", "title": "Post-midterm advising week", "kind": "academic"},
+    {"date": "2026-10-26", "title": "Spring priority registration begins", "kind": "deadline"},
+    {"start_date": "2026-10-29", "end_date": "2026-10-30", "title": "Fall Break — no classes", "kind": "no_class"},
+    {"date": "2026-11-02", "title": "Last day to drop a class with a W", "kind": "deadline"},
+    {"start_date": "2026-11-25", "end_date": "2026-11-27", "title": "Thanksgiving Break — no classes", "kind": "no_class"},
+    {"date": "2026-11-30", "title": "Last day to withdraw from the university", "kind": "deadline"},
+    {"date": "2026-12-04", "title": "Last day of instruction", "kind": "milestone"},
+    {"date": "2026-12-07", "title": "Study Day", "kind": "academic"},
+    {"start_date": "2026-12-08", "end_date": "2026-12-11", "title": "Final Examinations", "kind": "academic"},
+    {"date": "2026-12-11", "title": "Blackboard courses close at 11:59 PM", "kind": "deadline"}
+  ]
+}

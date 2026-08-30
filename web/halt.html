@@ -42,7 +42,7 @@
   <script src="/static/app.js"></script>
   <script>
     const S = window.Summary;
-    const labels = { start_30m: "30 min · virtual", start_2h: "2 hours · leave soon", start_1d: "Tomorrow · prep", submit_4h: "4 hours · submit", present_30m: "30 min · present" };
+    const labels = { start_30m: "30 min · virtual", start_2h: "2 hours · leave soon", start_1d: "Tomorrow · prep", course_15m: "15 min · class begins", submit_4h: "4 hours · submit", present_30m: "30 min · present", deadline_7d: "7 days · plan the application", deadline_1d: "Tomorrow · application due", deadline_4h: "4 hours · application due" };
     let halt = null;
     let miss = 0;
     let busy = false;
@@ -118,9 +118,9 @@
       el("copy").textContent = why;
       el("hint").textContent = halt.im_in_hint || "";
       el("join").style.display = halt.join_url ? "inline-block" : "none";
-      el("headed").style.display = reminder && halt.modality === "physical" ? "inline-block" : "none";
+      el("headed").style.display = halt.can_headed ? "inline-block" : "none";
       el("dismiss").style.display = reminder ? "inline-block" : "none";
-      el("typebox").style.display = reminder && !halt.confirmed ? "flex" : "none";
+      el("typebox").style.display = reminder && !["deadline", "course", "calendar_note"].includes(halt.kind) && !halt.confirmed ? "flex" : "none";
       syncImInButton();
     }
     async function ackReminder(action, kind, modality) {

@@ -30,6 +30,63 @@ func pickJoin(url: String?, notes: String?, location: String?) -> String {
     return ""
 }
 
+if CommandLine.arguments.contains("sync") {
+    let data = FileHandle.standardInput.readDataToEndOfFile()
+    guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let specs = root["events"] as? [[String: Any]],
+          let cal = store.defaultCalendarForNewEvents else {
+        fputs("bad sync json or calendar access\n", stderr)
+        exit(1)
+    }
+    let parsed = specs.compactMap { spec -> (String, String, Date, Date, String, String, Bool)? in
+        guard let uid = spec["uid"] as? String,
+              let title = spec["title"] as? String,
+              let startS = spec["start_at"] as? String,
+              let endS = spec["end_at"] as? String,
+              let start = iso.date(from: startS),
+              let end = iso.date(from: endS) else { return nil }
+        return (uid, title, start, end, spec["location"] as? String ?? "", spec["notes"] as? String ?? "", spec["all_day"] as? Bool ?? false)
+    }
+    guard let first = parsed.map({ $0.2 }).min(), let last = parsed.map({ $0.3 }).max() else {
+        print("{\"created\":0,\"updated\":0,\"total\":0}")
+        exit(0)
+    }
+    let predicate = store.predicateForEvents(withStart: first.addingTimeInterval(-86400), end: last.addingTimeInterval(86400), calendars: [cal])
+    var existing: [String: EKEvent] = [:]
+    let markerPrefix = "Timeless academic UID: "
+    for event in store.events(matching: predicate) {
+        guard let notes = event.notes, let range = notes.range(of: markerPrefix) else { continue }
+        let tail = notes[range.upperBound...]
+        let uid = String(tail.split(separator: "\n", maxSplits: 1).first ?? "")
+        if !uid.isEmpty { existing[uid] = event }
+    }
+    var created = 0
+    var updated = 0
+    for (uid, title, start, end, location, notes, allDay) in parsed {
+        let event = existing[uid] ?? EKEvent(eventStore: store)
+        if existing[uid] == nil { created += 1 } else { updated += 1 }
+        event.calendar = cal
+        event.title = title
+        event.startDate = start
+        event.endDate = end
+        event.isAllDay = allDay
+        event.location = location
+        event.notes = markerPrefix + uid + "\n" + notes
+        do { try store.save(event, span: .thisEvent, commit: false) }
+        catch { fputs("\(error)\n", stderr); exit(1) }
+    }
+    do {
+        try store.commit()
+        let result: [String: Int] = ["created": created, "updated": updated, "total": parsed.count]
+        let resultData = try JSONSerialization.data(withJSONObject: result)
+        print(String(data: resultData, encoding: .utf8) ?? "{}")
+        exit(0)
+    } catch {
+        fputs("\(error)\n", stderr)
+        exit(1)
+    }
+}
+
 if CommandLine.arguments.contains("create") {
     let data = FileHandle.standardInput.readDataToEndOfFile()
     guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: String] else {

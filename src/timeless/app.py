@@ -12,7 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from timeless.access import advertised_hosts, is_loopback, token_ok, ui_token
-from timeless.calendar_write import create_calendar_event
+from timeless.academics import current_semester, semester_events, semester_public
+from timeless.calendar_write import create_calendar_event, sync_calendar_events
 from timeless.clock import day_key, due_recap_day, zone
 from timeless.hands import parse, run as run_hands
 from timeless.google_sheets import GoogleSheets, GoogleSheetsError
@@ -141,6 +142,16 @@ class HeartbeatIn(BaseModel):
     detail: str | None = None
 
 
+class ActivityIn(BaseModel):
+    source: str
+    source_id: str
+    ts: str
+    duration_seconds: float = Field(ge=0, le=86400)
+    app: str | None = None
+    host: str | None = None
+    title: str | None = None
+
+
 class QuietIn(BaseModel):
     level: str = "quiet"
     minutes: int | None = 60
@@ -210,6 +221,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
             "mail": store.list_mail_actions(),
             "heartbeats": store.heartbeats(),
             "heatmap": store.heatmap(),
+            "productivity": store.productivity_on_day(now_day),
             "brain": "online",
         }
 
@@ -226,6 +238,24 @@ def create_app(db_path: str | None = None) -> FastAPI:
             return {"authorization_url": google.authorization_url()}
         except GoogleSheetsError as exc:
             raise HTTPException(400, str(exc)) from exc
+
+    @app.get("/api/academics/current")
+    def academics_current():
+        semester = current_semester()
+        return semester_public(semester) if semester else {"courses": [], "academic_dates": [], "presets": []}
+
+    @app.post("/api/academics/calendar/sync")
+    def academics_calendar_sync(request: Request):
+        host = request.client.host if request.client else ""
+        if not is_loopback(host):
+            raise HTTPException(403, "Sync the academic calendar from the Mac running Timeless")
+        semester = current_semester()
+        if not semester:
+            raise HTTPException(404, "No semester configuration found")
+        result = sync_calendar_events(semester_events(semester))
+        if not result.get("ok"):
+            raise HTTPException(400, result.get("error") or "Calendar sync failed")
+        return {**result, "semester": semester.get("name")}
 
     @app.get("/oauth/google/callback")
     def google_callback(code: str | None = None, state: str | None = None, error: str | None = None):
@@ -411,6 +441,13 @@ def create_app(db_path: str | None = None) -> FastAPI:
         store.heartbeat(body.sensor, body.detail)
         return {"ok": True}
 
+    @app.post("/api/activity")
+    def activity(body: ActivityIn):
+        try:
+            return store.add_activity(**body.model_dump())
+        except ValueError as exc:
+            raise HTTPException(400, "invalid activity timestamp") from exc
+
     @app.post("/api/mail")
     def mail(body: MailIn):
         return store.add_mail_action(**body.model_dump())
@@ -462,6 +499,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
                 "mail": snapshot["mail"][:20],
                 "approvals": snapshot["approvals"],
                 "meetings": snapshot["meetings"][:10],
+                "productivity": snapshot["productivity"],
             },
             default=str,
         )[:8000]
@@ -551,6 +589,16 @@ def _maybe_do(store: Store, message: str) -> dict | None:
 def _offline_chat(message: str, snapshot: dict) -> str:
     msg = message.lower()
     opps = snapshot["opportunities"]
+    if any(word in msg for word in ("productive", "productivity", "aligned", "alignment", "focus")):
+        p = snapshot.get("productivity") or {}
+        if p.get("score") is None:
+            return "I do not have enough classified activity yet to estimate productivity. Keep ActivityWatch running."
+        mins = p.get("minutes") or {}
+        return (
+            f"Estimated productivity is {p['score']} with {p.get('coverage', 'low')} coverage. "
+            f"{mins.get('aligned', 0)}m matched the plan, {mins.get('productive_off_plan', 0)}m was productive but off-plan, "
+            f"and {mins.get('distracting', 0)}m looked distracting."
+        )
     if "didn" in msg and "apply" in msg or "opened" in msg:
         seen = [o for o in snapshot["opportunities"] if o["state"] == "seen"]
         if not seen:

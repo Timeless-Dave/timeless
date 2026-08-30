@@ -17,6 +17,24 @@ from timeless.mailer import classify_subject
 TIMLESS = os.environ.get("TIMELESS_URL", "http://127.0.0.1:8787")
 
 SCRIPT = r'''
+on replaceText(findText, replaceText, sourceText)
+  set oldDelimiters to AppleScript's text item delimiters
+  set AppleScript's text item delimiters to findText
+  set sourceParts to every text item of sourceText
+  set AppleScript's text item delimiters to replaceText
+  set cleanText to sourceParts as text
+  set AppleScript's text item delimiters to oldDelimiters
+  return cleanText
+end replaceText
+
+on cleanBody(sourceText)
+  set cleaned to my replaceText(tab, " ", sourceText)
+  set cleaned to my replaceText(return, " ", cleaned)
+  set cleaned to my replaceText(linefeed, " ", cleaned)
+  if (length of cleaned) > 2000 then set cleaned to text 1 thru 2000 of cleaned
+  return cleaned
+end cleanBody
+
 tell application "Mail"
   set out to ""
   try
@@ -26,7 +44,11 @@ tell application "Mail"
     if n < lim then set lim to n
     repeat with i from 1 to lim
       set m to message i of inbox
-      set out to out & (id of m as text) & tab & (subject of m) & tab & (sender of m) & linefeed
+      set bodyText to ""
+      try
+        set bodyText to my cleanBody(content of m as text)
+      end try
+      set out to out & (id of m as text) & tab & (subject of m) & tab & (sender of m) & tab & bodyText & linefeed
     end repeat
   on error
     return out
@@ -58,6 +80,7 @@ def main() -> None:
                 continue
             mid, subject = parts[0], parts[1]
             sender = parts[2] if len(parts) > 2 else ""
+            body = parts[3] if len(parts) > 3 else ""
             kind = classify_subject(subject, sender)
             if kind == "ignore":
                 ignored += 1
@@ -69,7 +92,7 @@ def main() -> None:
                     "account": "mail.app",
                     "subject": subject,
                     "classification": kind,
-                    "card": subject,
+                    "card": f"{subject}\n{body}"[:4000],
                 },
             )
             added += 1

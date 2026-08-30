@@ -7,6 +7,7 @@ import json
 import os
 import urllib.error
 import urllib.request
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 
 AW = os.environ.get("AW_URL", "http://127.0.0.1:5600").rstrip("/")
@@ -78,6 +79,22 @@ def main() -> None:
             url = data.get("url") or ""
             title = data.get("title") or data.get("app") or ""
             package = data.get("package") or data.get("app") or ""
+            try:
+                host = urllib.parse.urlparse(url).netloc.lower() if url else ""
+                post(
+                    f"{TIMLESS}/api/activity",
+                    {
+                        "source": SENSOR,
+                        "source_id": f"{bid}:{ev.get('id') or ev.get('timestamp') or ev.get('time')}",
+                        "ts": ev.get("timestamp") or ev.get("time") or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        "duration_seconds": float(ev.get("duration") or 0),
+                        "app": str(package)[:120],
+                        "host": host[:200],
+                        "title": str(title)[:240],
+                    },
+                )
+            except Exception as exc:
+                print(f"activity ingest failed: {exc}")
             if url:
                 try:
                     payload = {"url": url, "title": title or url}

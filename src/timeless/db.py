@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS meetings (
     kind TEXT,
     modality TEXT,
     confirmed INTEGER NOT NULL DEFAULT 0,
+    reminder_only INTEGER NOT NULL DEFAULT 0,
     ack TEXT CHECK (ack IN ('join','im_in','missed') OR ack IS NULL),
     acked_at TEXT
 );
@@ -130,6 +131,21 @@ CREATE TABLE IF NOT EXISTS app_settings (
     value TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS activity_samples (
+    id INTEGER PRIMARY KEY,
+    source TEXT NOT NULL,
+    source_id TEXT NOT NULL,
+    ts TEXT NOT NULL,
+    duration_seconds REAL NOT NULL DEFAULT 0,
+    app TEXT,
+    host TEXT,
+    title TEXT,
+    category TEXT NOT NULL,
+    productivity TEXT NOT NULL CHECK (productivity IN ('productive','distracting','neutral')),
+    UNIQUE(source, source_id)
+);
+CREATE INDEX IF NOT EXISTS idx_activity_samples_ts ON activity_samples(ts);
 """
 
 def connect(path: str | Path) -> sqlite3.Connection:
@@ -173,6 +189,7 @@ def migrate(conn: sqlite3.Connection) -> None:
         ("kind", "ALTER TABLE meetings ADD COLUMN kind TEXT"),
         ("modality", "ALTER TABLE meetings ADD COLUMN modality TEXT"),
         ("confirmed", "ALTER TABLE meetings ADD COLUMN confirmed INTEGER NOT NULL DEFAULT 0"),
+        ("reminder_only", "ALTER TABLE meetings ADD COLUMN reminder_only INTEGER NOT NULL DEFAULT 0"),
         ("join_locked", "ALTER TABLE meetings ADD COLUMN join_locked INTEGER NOT NULL DEFAULT 0"),
     ):
         if name not in cols:

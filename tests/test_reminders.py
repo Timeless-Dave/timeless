@@ -27,3 +27,15 @@ def test_hackathon_physical_includes_submit():
     submit = datetime(2026, 8, 22, 4, 0, tzinfo=timezone.utc)
     purposes = [p for p, _ in reminder_fires("hackathon", "physical", start, submit=submit)]
     assert purposes == ["start_1d", "start_2h", "submit_4h"]
+
+
+def test_deadline_has_staged_followups():
+    start = datetime(2026, 9, 20, 22, 0, tzinfo=timezone.utc)
+    fires = reminder_fires("deadline", "virtual", start)
+    assert [purpose for purpose, _ in fires] == ["deadline_7d", "deadline_1d", "deadline_4h"]
+
+
+def test_course_has_short_reminder_and_calendar_note_has_none():
+    start = datetime(2026, 9, 20, 15, 0, tzinfo=timezone.utc)
+    assert reminder_fires("course", "physical", start) == [("course_15m", datetime(2026, 9, 20, 14, 45, tzinfo=timezone.utc))]
+    assert reminder_fires("calendar_note", "physical", start) == []

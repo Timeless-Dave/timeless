@@ -76,6 +76,12 @@
                 <div class="metric-row" id="metrics"></div>
               </section>
 
+              <section class="card productivity-card" id="productivity-card">
+                <div class="card-head"><h2>Plan vs actual</h2><span class="count-chip" id="productivity-coverage">Waiting for activity</span></div>
+                <p class="card-lead" id="productivity-summary">ActivityWatch will build an estimate as the day unfolds.</p>
+                <div id="productivity-breakdown"></div>
+              </section>
+
               <section class="card chart-card">
                 <div class="card-head">
                   <h2>Activity growth</h2>
@@ -174,7 +180,7 @@
                 </div>
               </div>
               <div class="progress-card">
-                <p class="progress-label">Plan completion</p>
+                <p class="progress-label">Productivity estimate</p>
                 <div class="progress-top">
                   <span class="progress-value" id="progress-pct">0%</span>
                   <span class="chip mint" id="progress-chip">Clear day</span>
@@ -217,6 +223,7 @@
         <button type="button" class="hint" data-q="What did I do today?">Today</button>
         <button type="button" class="hint" data-q="open leetcode">LeetCode</button>
         <button type="button" class="hint" data-q="What's on my calendar?">Calendar</button>
+        <button type="button" class="hint" data-q="How productive and aligned was I today?">Alignment</button>
       </div>
       <div class="row">
         <input id="q" placeholder="Ask or tell me to do something…" autocomplete="off" />
@@ -258,6 +265,8 @@
       const approvals = t.approvals.length;
       const events = t.meetings.length;
       const series = heatSeries(t.heatmap, 7);
+      const productivity = t.productivity || {};
+      const score = productivity.score;
       const planTone = blocks > 0 ? "mint" : "amber";
       const eventTone = events > 0 ? "cyan" : "amber";
       const apprTone = approvals > 0 ? "rose" : "mint";
@@ -288,7 +297,38 @@
           <div class="metric-value-row"><span class="metric-value">${approvals}</span><span class="metric-unit">pending</span></div>
           <span class="chip ${apprTone}">${approvals ? "Needs you" : "All clear"}</span>
           <div class="metric-spark">${U.sparkline(series.map((v) => Math.min(v, approvals || 1)), "var(--pastel-cyan-icon)", 173, 72, "spark-approvals")}</div>
+        </article>
+        <article class="card metric-card">
+          <div class="metric-top">
+            <div class="metric-icon cyan">${U.iconPlan()}</div>
+            <div><p class="metric-label">Plan alignment</p></div>
+          </div>
+          <div class="metric-value-row"><span class="metric-value">${score == null ? "—" : score}</span><span class="metric-unit">${score == null ? "estimate" : "/ 100"}</span></div>
+          <span class="chip ${score == null ? "neutral" : score >= 75 ? "mint" : score >= 50 ? "amber" : "rose"}">${score == null ? "Collecting activity" : productivity.coverage + " coverage"}</span>
+          <div class="metric-spark">${U.sparkline([productivity.minutes?.distracting || 0, productivity.minutes?.productive_off_plan || 0, productivity.minutes?.aligned || 0], "var(--pastel-cyan-icon)", 173, 72, "spark-alignment")}</div>
         </article>`;
+    }
+
+    function paintProductivity(t) {
+      const p = t.productivity || {};
+      const minutes = p.minutes || {};
+      el("productivity-coverage").textContent = `${p.coverage || "low"} coverage · ${p.tracked_minutes || 0}m tracked`;
+      if (p.score == null) {
+        el("productivity-summary").textContent = "Not enough classified activity yet. Unknown time is not scored against you.";
+      } else {
+        el("productivity-summary").textContent = `${p.score}/100 estimated productivity · ${p.alignment == null ? "no planned work observed yet" : p.alignment + "% of productive time matched the plan"}.`;
+      }
+      const parts = [
+        ["aligned", "Plan-aligned", minutes.aligned || 0],
+        ["offplan", "Productive, off-plan", minutes.productive_off_plan || 0],
+        ["distracting", "Distracting", minutes.distracting || 0],
+        ["unknown", "Unknown", minutes.unknown || 0],
+      ];
+      const total = Math.max(1, parts.reduce((sum, part) => sum + part[2], 0));
+      const bars = `<div class="alignment-bar" aria-label="Productivity time breakdown">${parts.map(([tone, label, value]) => `<span class="${tone}" style="width:${(value / total) * 100}%" title="${label}: ${value}m"></span>`).join("")}</div>`;
+      const legend = `<div class="alignment-legend">${parts.map(([tone, label, value]) => `<span><i class="${tone}"></i>${label}<strong>${value}m</strong></span>`).join("")}</div>`;
+      const evidence = (p.evidence || []).slice(0, 5).map((item) => `<li><span>${esc(item.title)}</span><span class="chip neutral">${esc(item.category)} · ${item.minutes}m</span></li>`).join("");
+      el("productivity-breakdown").innerHTML = bars + legend + (evidence ? `<ul class="activity-evidence">${evidence}</ul>` : "");
     }
 
     function chartWidth() {
@@ -316,14 +356,16 @@
     function paintDark(t) {
       const plan = planDay === t.day ? (t.plan || {}) : (t.viewPlan || {});
       const ps = S.planStatus(plan, t.heatmap, t.day);
+      const productivity = t.productivity || {};
+      const score = productivity.score;
       el("tile-blocks").textContent = String(ps.blocks);
       el("tile-events").textContent = String(ps.events);
       el("ruler-blocks").innerHTML = U.rulerTicks(Math.min(8, ps.blocks));
       el("ruler-events").innerHTML = U.rulerTicks(Math.min(8, ps.events));
-      el("progress-pct").textContent = ps.value + "%";
-      el("progress-chip").textContent = ps.label;
-      el("progress-chip").className = "chip " + ps.tone;
-      el("progress-range").innerHTML = U.rangeBar(ps.value);
+      el("progress-pct").textContent = score == null ? "—" : score + "/100";
+      el("progress-chip").textContent = score == null ? "Collecting activity" : `${productivity.alignment ?? 0}% aligned`;
+      el("progress-chip").className = "chip " + (score == null ? "neutral" : score >= 75 ? "mint" : score >= 50 ? "amber" : "rose");
+      el("progress-range").innerHTML = U.rangeBar(score || 0);
       el("sensor-summary").textContent = S.sensorSummary(t.heartbeats);
       el("focus-chip").textContent = S.focusLabel(t.quiet);
       const fresh = t.heartbeats.filter((h) => Date.now() - parseTs(h.last_seen) < 30 * 60 * 1000).length;
@@ -385,7 +427,9 @@
     let viewPlanCache = { day: "", plan: null };
     let googleState = null;
     let googleBusy = false;
+    let googleRetryAt = 0;
     let refreshGeneration = 0;
+    let academics = { courses: [], presets: [], name: "" };
 
     function editing() {
       if (document.querySelector(".clock-pop")) return true;
@@ -402,6 +446,10 @@
       </div>`;
     }
 
+    function presetChips() {
+      return `<div class="preset-chips" id="plan-presets">${(academics.presets || []).map((preset) => `<button type="button" class="preset-chip" data-plan-preset="${esc(preset)}">${esc(preset)}</button>`).join("")}</div>`;
+    }
+
     function paintMain(t) {
       lastToday = t;
       if (!planDay) planDay = t.day;
@@ -409,7 +457,9 @@
       const blocks = (plan.timeline && plan.timeline.length) ? plan.timeline.map(blockHtml).join("") : blockHtml({ start: "09:00", end: "10:00", task: "" });
       el("plan").innerHTML = `<div class="card-head"><h2>Today</h2><input type="date" id="plan-day" class="inline-date" value="${esc(planDay)}" min="${esc(t.day)}" /></div>
         <p class="card-lead">${S.planBlocks(plan) ? S.planBlocks(plan) + " blocks locked in for this day." : "Add blocks so the day has a shape."}</p>
+        <div class="semester-strip"><span><strong>${esc(academics.name || "Study presets")}</strong>${academics.courses?.length ? ` · ${academics.courses.length} courses` : ""}</span><button type="button" class="ghost small-btn" id="sync-academic-calendar">Add to Calendar</button></div>
         <label class="compact-label">Done means</label>
+        ${presetChips()}
         <textarea id="outcomes" class="compact-area" rows="2" placeholder="What counts as a win today">${esc(plan.outcomes || "")}</textarea>
         <div class="plan-blocks"><div class="plan-blocks-head"><span>Blocks</span></div><div id="plan-rows">${blocks}</div>
         <div class="plan-actions"><button type="button" class="ghost" id="add-block">+ Block</button><button type="button" id="save-plan">Save</button></div></div>`;
@@ -446,6 +496,7 @@
 
     function paintKpiStrip(t) {
       paintMetrics(t);
+      paintProductivity(t);
       paintChart(t);
       paintNext(t);
       paintDark(t);
@@ -528,6 +579,7 @@
         heartbeats: t.heartbeats,
         opps: t.opportunities,
         mail: t.mail,
+        productivity: t.productivity,
         planDay,
         day: t.day,
       });
@@ -551,8 +603,25 @@
       el("google-view").classList.toggle("hidden", !state.spreadsheet_url);
       if (!state.configured) el("google-status").textContent = "Add Google credentials to connect";
       else if (!connected) el("google-status").textContent = "Google Sheets not connected";
+      else if (state.dirty) el("google-status").textContent = "Changes waiting to sync";
       else if (state.last_synced_at) el("google-status").textContent = "Synced " + S.relTime(state.last_synced_at);
       else el("google-status").textContent = "Connected · ready to create your sheet";
+      if (connected && state.dirty && !googleBusy && Date.now() >= googleRetryAt) syncGoogle(true);
+    }
+
+    async function syncGoogle(silent) {
+      if (googleBusy) return;
+      googleBusy = true; el("google-sync").disabled = true; el("google-sync").textContent = "Syncing…";
+      try {
+        const out = await api("/api/integrations/google/sync", { method: "POST" });
+        googleRetryAt = 0; paintGoogle(out);
+        if (!silent) U.toast(`${out.rows} programs synced.`, "mint");
+      } catch (err) {
+        googleRetryAt = Date.now() + 60000;
+        if (!silent) U.toast(err.message);
+      } finally {
+        googleBusy = false; el("google-sync").disabled = false; el("google-sync").textContent = "Sync";
+      }
     }
 
     function collectTimeline() {
@@ -588,6 +657,20 @@
     document.body.addEventListener("click", async (e) => {
       const t = e.target;
       if (t.id === "save-plan") await savePlan();
+      if (t.dataset.planPreset) {
+        const area = el("outcomes");
+        const line = t.dataset.planPreset;
+        const existing = area.value.trim();
+        if (!existing.split("\n").some((value) => value.trim().toLowerCase() === line.toLowerCase())) area.value = existing ? existing + "\n" + line : line;
+        area.focus();
+      }
+      if (t.id === "sync-academic-calendar") {
+        if (t.disabled) return;
+        t.disabled = true; t.textContent = "Syncing…";
+        try { const out = await api("/api/academics/calendar/sync", { method: "POST" }); U.toast(`${out.total} ${out.semester} events synced.`, "mint"); }
+        catch (err) { U.toast(err.message); }
+        finally { t.disabled = false; t.textContent = "Add to Calendar"; }
+      }
       if (t.id === "export-programs") exportPrograms();
       if (t.id === "add-block") el("plan-rows").insertAdjacentHTML("beforeend", blockHtml({ start: "09:00", end: "10:00", task: "" }));
       if (t.classList && t.classList.contains("time-btn")) ClockPop(t, t.textContent.trim(), (v) => { t.textContent = v; });
@@ -651,13 +734,7 @@
       try { const out = await api("/api/integrations/google/connect", { method: "POST" }); location.href = out.authorization_url; }
       catch (err) { U.toast(err.message); googleBusy = false; el("google-connect").disabled = false; }
     };
-    el("google-sync").onclick = async () => {
-      if (googleBusy) return;
-      googleBusy = true; el("google-sync").disabled = true; el("google-sync").textContent = "Syncing…";
-      try { const out = await api("/api/integrations/google/sync", { method: "POST" }); paintGoogle(out); U.toast(`${out.rows} programs synced.`, "mint"); }
-      catch (err) { U.toast(err.message); }
-      finally { googleBusy = false; el("google-sync").disabled = false; el("google-sync").textContent = "Sync"; }
-    };
+    el("google-sync").onclick = () => syncGoogle(false);
     el("google-view").onclick = () => { if (googleState && googleState.spreadsheet_url) window.open(googleState.spreadsheet_url, "_blank", "noopener"); };
     el("tracker-add").onsubmit = async (event) => {
       event.preventDefault();
@@ -733,6 +810,7 @@
     }
     document.body.addEventListener("click", (e) => { if (e.target.id === "retry-connection") connectedRefresh({ force: true }).catch(() => {}); });
     connectedRefresh({ nav: true }).catch(() => {});
+    api("/api/academics/current").then((data) => { academics = data; if (lastToday && !editing()) { lastMain = ""; paintMain(lastToday); } }).catch(() => {});
     const googleResult = new URLSearchParams(location.search).get("google");
     if (googleResult) {
       U.toast(googleResult === "connected" ? "Google Sheets connected." : "Google connection was cancelled.", googleResult === "connected" ? "mint" : "");

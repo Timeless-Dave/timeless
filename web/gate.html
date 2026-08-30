@@ -21,6 +21,7 @@
           <div><p class="shell-section-head">Today's wins</p><p class="sub">Keep it concrete. Three clear wins is usually enough.</p></div>
           <button type="button" class="ghost compact-add" id="add-goal">+ Goal</button>
         </div>
+        <div class="preset-chips" id="goal-presets" aria-label="Goal suggestions"></div>
         <div id="goals" class="goal-list"></div>
       </div>
       <div class="shell-section">
@@ -42,6 +43,7 @@
   <script src="/static/clock.js"></script>
   <script>
     let today = "";
+    let academics = { presets: [] };
     function goalEl(value) {
       const row = document.createElement("div");
       row.className = "goal-row";
@@ -80,6 +82,10 @@
     }
     el("add-block").onclick = () => addBlock("09:00", "10:00", "");
     el("add-goal").onclick = () => addGoal("", true);
+    el("goal-presets").onclick = (event) => {
+      const button = event.target.closest("[data-preset]");
+      if (button) addGoal(button.dataset.preset, true);
+    };
     el("plan-day").onchange = () => loadDay(el("plan-day").value);
     el("lock").onclick = async () => {
       el("err").textContent = "";
@@ -107,6 +113,10 @@
       el("plan-day").value = t.day;
       el("plan-day").min = t.day;
       await loadDay(t.day);
+      try {
+        academics = await api("/api/academics/current");
+        el("goal-presets").innerHTML = (academics.presets || []).map((preset) => `<button type="button" class="preset-chip" data-preset="${String(preset).replace(/&/g, "&amp;").replace(/\"/g, "&quot;")}">${String(preset).replace(/&/g, "&amp;").replace(/</g, "&lt;")}</button>`).join("");
+      } catch (_) {}
     })().catch((err) => { el("err").textContent = err.message; });
   </script>
 </body>

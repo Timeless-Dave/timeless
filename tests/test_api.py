@@ -195,6 +195,33 @@ def test_heartbeat_api(tmp_path):
     assert "mac_aw" in sensors
 
 
+def test_activity_api_returns_classification(tmp_path):
+    c = client(tmp_path)
+    result = c.post("/api/activity", json={
+        "source": "mac_aw",
+        "source_id": "event-1",
+        "ts": "2026-08-30T15:00:00Z",
+        "duration_seconds": 300,
+        "app": "Chrome",
+        "host": "leetcode.com",
+        "title": "Dynamic programming practice",
+    })
+    assert result.status_code == 200
+    assert result.json()["category"] == "study"
+    assert result.json()["productivity"] == "productive"
+
+
+def test_academic_routes_expose_courses_and_sync_calendar(monkeypatch, tmp_path):
+    monkeypatch.setattr("timeless.app.sync_calendar_events", lambda events: {"ok": True, "created": len(events), "updated": 0, "total": len(events)})
+    c = client(tmp_path)
+    academic = c.get("/api/academics/current")
+    assert academic.status_code == 200
+    assert len(academic.json()["courses"]) == 6
+    synced = c.post("/api/academics/calendar/sync")
+    assert synced.status_code == 200
+    assert synced.json()["total"] > 100
+
+
 def test_do_open_does_not_send(monkeypatch, tmp_path):
     monkeypatch.setattr(
         "timeless.app.run_hands",

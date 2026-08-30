@@ -61,6 +61,8 @@ def test_publish_creates_then_updates_same_sheet(integration):
     second = google.publish([opp])
     assert first["rows"] == 1
     assert second["spreadsheet_id"] == "sheet-123"
+    assert second["dirty"] is False
+    assert store.get_setting("google_tracker_dirty") == "0"
     assert sum(1 for method, url in requests if method == "POST" and url == "https://sheets.googleapis.com/v4/spreadsheets") == 1
 
 

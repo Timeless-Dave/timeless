@@ -81,3 +81,23 @@ Timeless is the source of truth for internships, conferences, hackathons, and ot
 4. Restart Timeless, open **Programs**, and select **Connect Sheets**.
 
 OAuth client configuration and tokens are stored separately under `~/Library/Application Support/Timeless/`, both with owner-only permissions. Environment variables remain supported for deployments. The app requests only the Google Sheets scope. **Sync** creates the tracker on first use and reuses it afterward; **View sheet** opens it, and **Export CSV** remains available as a fallback.
+
+### Smart capture and reminders
+
+- **Browser:** ActivityWatch forwards recent browser activity, but Timeless retains only strong internship/job, hackathon, and conference matches. It does not import the browser's full history. Tracking parameters and fragments are removed before deduplication.
+- **Mail:** the Mail.app ingest scans a bounded set of recent inbox messages, classifies their subject plus a bounded body excerpt, and extracts relevant program links, dates, interview links, rejections, and application confirmations.
+- **Calendar:** calendar events remain the authority for event time and location. Conferences and hackathons are also promoted into Programs; interview events receive join/leave reminders and automatic quiet time.
+- **Deadlines:** tracked program deadlines create staged reminders at seven days, one day, and four hours. They never become check-in meetings.
+- **Sheets:** every Programs record is published to the dedicated Tracker worksheet. Timeless stays authoritative so spreadsheet edits cannot silently overwrite newer local state.
+
+### Productivity and plan alignment
+
+ActivityWatch window/web samples are deduplicated by source ID and overlapping intervals are merged before scoring. Timeless stores the app, hostname, bounded title, category, and duration—not full page URLs or page contents. Each interval is classified as plan-aligned productive work, productive but off-plan, distracting, or unknown. Unknown time is shown as coverage and is never scored as failure.
+
+The estimate weights plan-aligned work fully, productive off-plan work partially, and distracting work at zero. The dashboard always shows the underlying minutes and recent evidence alongside the score. Classification is deliberately local and deterministic, so it can be audited and tuned without sending activity history to an external model.
+
+### Semester courses
+
+Semester-scoped course data lives in `config/academics/`. The Fall 2026 configuration contains the six verified courses from the Workday schedule, meeting locations/times, no-class dates, and a curated set of student-relevant UAPB academic dates. It deliberately excludes the student identifier from the source PDF.
+
+The daily gate and dashboard plan editor expose horizontal preset chips for Code, LeetCode, Coursera, Algorithms, applications, study activities, and current courses. **Add to Calendar** performs an idempotent EventKit sync: rerunning it updates Timeless-owned events by stable academic UID rather than creating duplicates. Regular classes receive a 15-minute reminder; academic deadlines receive staged reminders; informational dates and breaks remain non-blocking calendar entries.

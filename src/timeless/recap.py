@@ -161,6 +161,8 @@ def build_cards(store: Store, day: str, phone_synced: bool) -> list[dict[str, An
     blocks = (plan or {}).get("timeline") or []
     outcomes = ((plan or {}).get("outcomes") or "").strip()
     week = week_compare(store, day)
+    productivity = store.productivity_on_day(day)
+    productivity_minutes = productivity.get("minutes") or {}
 
     cards: list[dict[str, Any]] = [
         {
@@ -206,6 +208,23 @@ def build_cards(store: Store, day: str, phone_synced: bool) -> list[dict[str, An
             "stat_label": "touched",
             "body": "Roles you touched today:" if opps else "No postings were tagged today.",
             "lines": [(o.get("role") or o.get("url") or "a posting")[:56] for o in opps[:5]],
+        },
+        {
+            "kicker": "Alignment",
+            "title": "Did the day match the plan?",
+            "stat": str(productivity.get("score")) if productivity.get("score") is not None else "—",
+            "stat_label": "estimated productivity score",
+            "body": (
+                f"{productivity.get('alignment')}% of productive time matched the plan."
+                if productivity.get("alignment") is not None
+                else "Not enough classified activity to estimate alignment."
+            ),
+            "lines": [
+                f"Plan-aligned — {productivity_minutes.get('aligned', 0)} min",
+                f"Productive, off-plan — {productivity_minutes.get('productive_off_plan', 0)} min",
+                f"Distracting — {productivity_minutes.get('distracting', 0)} min",
+                f"Unknown — {productivity_minutes.get('unknown', 0)} min",
+            ],
         },
         {
             "kicker": "Compare",

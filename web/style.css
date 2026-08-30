@@ -256,6 +256,13 @@ a:hover { text-decoration: underline; }
 }
 .card-tools { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
 .small-btn { padding: .35rem .65rem; font-size: 13px; }
+.tracker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .7rem .8rem; margin-bottom: .75rem; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-chip); }
+.tracker-status { display: flex; align-items: center; gap: .45rem; min-width: 0; color: var(--muted); font-size: 13px; font-weight: 600; }
+.status-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: var(--axis); box-shadow: 0 0 0 3px color-mix(in srgb, var(--axis) 15%, transparent); }
+.status-dot.on { background: var(--pastel-mint-icon); box-shadow: 0 0 0 3px color-mix(in srgb, var(--pastel-mint-icon) 15%, transparent); }
+.tracker-add { display: grid; grid-template-columns: minmax(120px, .8fr) minmax(150px, 1fr) 120px 145px minmax(180px, 1.2fr) auto; gap: .45rem; margin-bottom: .75rem; }
+.tracker-add input, .tracker-add select { min-width: 0; width: 100%; font-size: 14px; }
+.tracker-table { min-width: 860px; }
 .card-head h2, .card h2 {
   margin: 0;
   font-size: 20px;
@@ -1032,6 +1039,8 @@ input:focus, textarea:focus, select:focus {
     border-top: 1px solid var(--panel-divider);
   }
   .metric-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tracker-add { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tracker-add #new-url { grid-column: 1 / -1; }
 }
 @media (max-width: 900px) {
   .metric-row { grid-template-columns: repeat(3, minmax(0, 1fr)); overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: .25rem; }
@@ -1062,6 +1071,13 @@ input:focus, textarea:focus, select:focus {
   .approval-field { grid-template-columns: 1fr; }
   .chat { right: 0.75rem; bottom: 0.75rem; }
   .scroll { max-height: min(320px, 40dvh); }
+  .tracker-toolbar { align-items: flex-start; flex-direction: column; }
+  .tracker-toolbar .card-tools { width: 100%; justify-content: flex-start; }
+  .tracker-add { grid-template-columns: 1fr; }
+  .tracker-add #new-url { grid-column: auto; }
+  .tracker-table { min-width: 0; }
+  .tracker-table td { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: .5rem; align-items: center; }
+  .tracker-table td::before { content: attr(data-label); color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
   .gate-page .overlay { align-items: stretch; padding: 0; }
   .gate-page .overlay .panel.card { width: 100%; max-height: 100dvh; min-height: 100dvh; border: 0; border-radius: 0; padding: 1rem; padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
   .gate-block-row { grid-template-columns: 1fr 1fr 2.25rem; }

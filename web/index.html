@@ -107,9 +107,26 @@
               <section class="card panel" id="panel-programs">
                 <div class="card-head">
                   <h2>Programs</h2>
-                  <div class="card-tools"><button type="button" class="ghost small-btn" id="export-programs">Export CSV</button><span class="count-chip" id="programs-count"></span></div>
+                  <span class="count-chip" id="programs-count"></span>
                 </div>
                 <p class="card-lead" id="programs-summary"></p>
+                <div class="tracker-toolbar" aria-label="Program tracker actions">
+                  <div class="tracker-status"><span class="status-dot" id="google-dot"></span><span id="google-status">Checking Google Sheets…</span></div>
+                  <div class="card-tools">
+                    <button type="button" class="ghost small-btn" id="google-connect">Connect Sheets</button>
+                    <button type="button" class="ghost small-btn hidden" id="google-sync">Sync</button>
+                    <button type="button" class="ghost small-btn hidden" id="google-view">View sheet</button>
+                    <button type="button" class="ghost small-btn" id="export-programs">Export CSV</button>
+                  </div>
+                </div>
+                <form class="tracker-add" id="tracker-add">
+                  <input id="new-company" placeholder="Company / organizer" aria-label="Company or organizer" />
+                  <input id="new-role" placeholder="Role / program" aria-label="Role or program" required />
+                  <select id="new-kind" aria-label="Program type"><option value="internship">Internship</option><option value="conference">Conference</option><option value="hackathon">Hackathon</option><option value="other">Other</option></select>
+                  <input id="new-deadline" type="date" aria-label="Deadline" />
+                  <input id="new-url" type="url" placeholder="https://…" aria-label="Program URL" required />
+                  <button type="submit" id="add-program">Add</button>
+                </form>
                 <div class="scroll" id="opps"></div>
               </section>
 
@@ -366,6 +383,9 @@
     let lastToday = null;
     let planDay = "";
     let viewPlanCache = { day: "", plan: null };
+    let googleState = null;
+    let googleBusy = false;
+    let refreshGeneration = 0;
 
     function editing() {
       if (document.querySelector(".clock-pop")) return true;
@@ -400,8 +420,8 @@
         : "<p class=\"empty-note\">No events stored.</p>";
       el("programs-summary").textContent = S.programSummary(t.opportunities);
       el("opps").innerHTML = t.opportunities.length
-        ? `<table class="grid-table"><thead><tr><th>Role</th><th>Kind</th><th>State</th><th>URL</th></tr></thead><tbody>` +
-          t.opportunities.map((o) => `<tr><td><input data-opp-edit="${o.id}" data-k="role" value="${esc(o.role || "")}" /></td><td><select data-opp-edit="${o.id}" data-k="kind">${["internship","hackathon","conference","other"].map((k) => `<option${o.kind === k ? " selected" : ""}>${k}</option>`).join("")}</select></td><td><select data-opp="${o.id}" data-state-sel="1">${["seen","applied","shortlisted","interview","waiting","offer","rejected","skipped","ignored"].map((s) => `<option value="${s}"${o.state === s ? " selected" : ""}>${esc(S.stateLabel(s))}</option>`).join("")}</select></td><td><input data-opp-edit="${o.id}" data-k="url" value="${esc(o.url || "")}" /></td></tr>`).join("") + `</tbody></table>`
+        ? `<table class="grid-table tracker-table"><thead><tr><th>Company</th><th>Role</th><th>Kind</th><th>Status</th><th>Deadline</th><th>URL</th></tr></thead><tbody>` +
+          t.opportunities.map((o) => `<tr><td data-label="Company"><input data-opp-edit="${o.id}" data-k="company" value="${esc(o.company || "")}" /></td><td data-label="Role"><input data-opp-edit="${o.id}" data-k="role" value="${esc(o.role || "")}" /></td><td data-label="Kind"><select data-opp-edit="${o.id}" data-k="kind">${["internship","hackathon","conference","other"].map((k) => `<option${o.kind === k ? " selected" : ""}>${k}</option>`).join("")}</select></td><td data-label="Status"><select data-opp="${o.id}" data-state-sel="1">${["seen","applied","shortlisted","interview","waiting","offer","rejected","skipped","ignored"].map((s) => `<option value="${s}"${o.state === s ? " selected" : ""}>${esc(S.stateLabel(s))}</option>`).join("")}</select></td><td data-label="Deadline"><input type="date" data-opp-edit="${o.id}" data-k="deadline_at" value="${esc((o.deadline_at || "").slice(0, 10))}" /></td><td data-label="URL"><input type="url" data-opp-edit="${o.id}" data-k="url" value="${esc(o.url || "")}" /></td></tr>`).join("") + `</tbody></table>`
         : "<p class=\"empty-note\">No postings yet.</p>";
       el("mail-summary").textContent = S.mailSummary(t.mail);
       el("mail").innerHTML = t.mail.length
@@ -432,7 +452,7 @@
       paintQuiet(t);
     }
 
-    async function paintSide(t) {
+    async function paintSide(t, generation) {
       const days = t.heatmap || [];
       const active = days.filter((d) => (d.count || 0) > 0).length;
       const total = days.reduce((n, d) => n + (d.count || 0), 0);
@@ -451,6 +471,7 @@
         : "<p class=\"empty-note\" style=\"color:var(--muted-on-dark)\">No sensors yet.</p>";
       try {
         const a = await api("/api/access");
+        if (generation !== refreshGeneration) return;
         const remote = (a.urls || []).filter((u) => !u.includes("127.0.0.1"));
         if (remote.length) {
           el("heart").innerHTML += "<p class=\"sub-dark\" style=\"font-weight:400;font-size:13px\">Phone URLs</p><ul style=\"color:var(--muted-on-dark);font-size:13px\">" + remote.map((u) => `<li><code>${esc(u)}</code></li>`).join("") + "</ul>";
@@ -474,6 +495,7 @@
     }
 
     async function refresh(opts) {
+      const generation = ++refreshGeneration;
       const nav = opts && opts.nav;
       const force = opts && opts.force;
       const t = await api("/api/today");
@@ -481,6 +503,7 @@
         if (viewPlanCache.day !== planDay) viewPlanCache = { day: planDay, plan: await api("/api/plan?day=" + encodeURIComponent(planDay)) };
         t.viewPlan = viewPlanCache.plan;
       } else if (planDay === t.day) t.viewPlan = t.plan;
+      if (generation !== refreshGeneration) return;
       if (nav) {
         if (t.halt) { location.href = "/halt"; return; }
         if (t.needs_recap) { location.href = "/recap"; return; }
@@ -510,8 +533,26 @@
       });
       if (force || main !== lastMain) { lastMain = main; paintMain(t); }
       if (force || kpi !== lastKpi) { lastKpi = kpi; paintKpiStrip(t); }
-      if (force || side !== lastSide) { lastSide = side; await paintSide(t); }
+      if (force || side !== lastSide) { lastSide = side; await paintSide(t, generation); }
+      if (generation !== refreshGeneration) return;
       filterPanels(el("dash-search").value);
+      try {
+        const google = await api("/api/integrations/google");
+        if (generation === refreshGeneration) paintGoogle(google);
+      } catch (_) {}
+    }
+
+    function paintGoogle(state) {
+      googleState = state;
+      const connected = !!state.connected;
+      el("google-dot").classList.toggle("on", connected);
+      el("google-connect").classList.toggle("hidden", connected);
+      el("google-sync").classList.toggle("hidden", !connected);
+      el("google-view").classList.toggle("hidden", !state.spreadsheet_url);
+      if (!state.configured) el("google-status").textContent = "Add Google credentials to connect";
+      else if (!connected) el("google-status").textContent = "Google Sheets not connected";
+      else if (state.last_synced_at) el("google-status").textContent = "Synced " + S.relTime(state.last_synced_at);
+      else el("google-status").textContent = "Connected · ready to create your sheet";
     }
 
     function collectTimeline() {
@@ -604,6 +645,31 @@
       catch (err) { U.toast(err.message || "Refresh failed."); }
       finally { btn.classList.remove("is-loading"); btn.disabled = false; }
     };
+    el("google-connect").onclick = async () => {
+      if (googleBusy) return;
+      googleBusy = true; el("google-connect").disabled = true;
+      try { const out = await api("/api/integrations/google/connect", { method: "POST" }); location.href = out.authorization_url; }
+      catch (err) { U.toast(err.message); googleBusy = false; el("google-connect").disabled = false; }
+    };
+    el("google-sync").onclick = async () => {
+      if (googleBusy) return;
+      googleBusy = true; el("google-sync").disabled = true; el("google-sync").textContent = "Syncing…";
+      try { const out = await api("/api/integrations/google/sync", { method: "POST" }); paintGoogle(out); U.toast(`${out.rows} programs synced.`, "mint"); }
+      catch (err) { U.toast(err.message); }
+      finally { googleBusy = false; el("google-sync").disabled = false; el("google-sync").textContent = "Sync"; }
+    };
+    el("google-view").onclick = () => { if (googleState && googleState.spreadsheet_url) window.open(googleState.spreadsheet_url, "_blank", "noopener"); };
+    el("tracker-add").onsubmit = async (event) => {
+      event.preventDefault();
+      const button = el("add-program");
+      if (button.disabled) return;
+      button.disabled = true; button.textContent = "Adding…";
+      try {
+        await api("/api/opportunities", { method: "POST", body: JSON.stringify({ company: el("new-company").value.trim() || null, role: el("new-role").value.trim(), kind: el("new-kind").value, deadline_at: el("new-deadline").value || null, url: el("new-url").value.trim() }) });
+        event.target.reset(); U.toast("Added to tracker.", "mint"); await refresh({ force: true });
+      } catch (err) { U.toast(err.message); }
+      finally { button.disabled = false; button.textContent = "Add"; }
+    };
     el("fab-toggle").onclick = () => el("fab").classList.toggle("open");
 
     const chatKey = "timeless_chat";
@@ -667,6 +733,11 @@
     }
     document.body.addEventListener("click", (e) => { if (e.target.id === "retry-connection") connectedRefresh({ force: true }).catch(() => {}); });
     connectedRefresh({ nav: true }).catch(() => {});
+    const googleResult = new URLSearchParams(location.search).get("google");
+    if (googleResult) {
+      U.toast(googleResult === "connected" ? "Google Sheets connected." : "Google connection was cancelled.", googleResult === "connected" ? "mint" : "");
+      const clean = new URL(location.href); clean.searchParams.delete("google"); history.replaceState({}, "", clean.pathname + clean.search + clean.hash);
+    }
     setInterval(() => { if (!document.hidden) connectedRefresh().catch(() => {}); }, 15000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) connectedRefresh().catch(() => {}); });
     let chartTimer = null;

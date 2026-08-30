@@ -124,6 +124,12 @@ CREATE TABLE IF NOT EXISTS quiet_periods (
     source TEXT NOT NULL,
     meeting_id INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 """
 
 def connect(path: str | Path) -> sqlite3.Connection:

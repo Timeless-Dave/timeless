@@ -96,6 +96,25 @@ def test_plan_for_future_day(tmp_path):
     assert c.get("/api/plan", params={"day": "nope"}).status_code == 400
 
 
+def test_manual_program_tracking(tmp_path):
+    c = client(tmp_path)
+    bad = c.post("/api/opportunities", json={"role": "Intern", "url": "not-a-url"})
+    assert bad.status_code == 400
+    made = c.post("/api/opportunities", json={
+        "company": "Acme",
+        "role": "Software Intern",
+        "kind": "internship",
+        "state": "seen",
+        "deadline_at": "2026-09-10",
+        "url": "https://example.com/jobs/1",
+    })
+    assert made.status_code == 200
+    opp = made.json()
+    changed = c.patch(f"/api/opportunities/{opp['id']}", json={"company": "Acme Labs", "deadline_at": "2026-09-12"})
+    assert changed.json()["company"] == "Acme Labs"
+    assert changed.json()["deadline_at"] == "2026-09-12"
+
+
 def test_chat_accepts_history(tmp_path):
     c = client(tmp_path)
     c.post("/api/plan", json={"outcomes": "work", "timeline": [{"task": "code", "start": "9", "end": "10"}]})

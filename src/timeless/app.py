@@ -7,7 +7,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -15,6 +15,7 @@ from timeless.access import advertised_hosts, is_loopback, token_ok, ui_token
 from timeless.calendar_write import create_calendar_event
 from timeless.clock import day_key, due_recap_day, zone
 from timeless.hands import parse, run as run_hands
+from timeless.google_sheets import GoogleSheets, GoogleSheetsError
 from timeless.local_cmd import apply_local, parse_local
 from timeless.recap import build_cards, connect_phone, ensure_recap
 from timeless.store import Store
@@ -62,9 +63,20 @@ class MeetingPatchIn(BaseModel):
 
 
 class OppPatchIn(BaseModel):
+    company: str | None = None
     role: str | None = None
     kind: str | None = None
     url: str | None = None
+    deadline_at: str | None = None
+
+
+class OppIn(BaseModel):
+    company: str | None = None
+    role: str
+    kind: str = "internship"
+    state: str = "seen"
+    url: str
+    deadline_at: str | None = None
 
 
 class OppStateIn(BaseModel):
@@ -141,6 +153,8 @@ def create_app(db_path: str | None = None) -> FastAPI:
     store = Store(db_path)
     app = FastAPI(title="Timeless")
     app.state.store = store
+    google = GoogleSheets(store)
+    app.state.google_sheets = google
 
     @app.middleware("http")
     async def require_token(request: Request, call_next):
@@ -198,6 +212,47 @@ def create_app(db_path: str | None = None) -> FastAPI:
             "heatmap": store.heatmap(),
             "brain": "online",
         }
+
+    @app.get("/api/integrations/google")
+    def google_status():
+        return google.status()
+
+    @app.post("/api/integrations/google/connect")
+    def google_connect(request: Request):
+        host = request.client.host if request.client else ""
+        if not is_loopback(host):
+            raise HTTPException(403, "Connect Google Sheets from the Mac running Timeless")
+        try:
+            return {"authorization_url": google.authorization_url()}
+        except GoogleSheetsError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.get("/oauth/google/callback")
+    def google_callback(code: str | None = None, state: str | None = None, error: str | None = None):
+        if error:
+            return RedirectResponse(url="/?google=denied#panel-programs", status_code=303)
+        if not code or not state:
+            raise HTTPException(400, "Google callback is missing code or state")
+        try:
+            google.complete_authorization(code, state)
+        except GoogleSheetsError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        return RedirectResponse(url="/?google=connected#panel-programs", status_code=303)
+
+    @app.post("/api/integrations/google/sync")
+    def google_sync():
+        try:
+            return google.publish(store.list_opportunities())
+        except GoogleSheetsError as exc:
+            raise HTTPException(409 if "already running" in str(exc) else 400, str(exc)) from exc
+
+    @app.delete("/api/integrations/google")
+    def google_disconnect():
+        try:
+            google.disconnect()
+            return google.status()
+        except GoogleSheetsError as exc:
+            raise HTTPException(400, str(exc)) from exc
 
     @app.post("/api/recap/ack")
     def recap_ack():
@@ -297,6 +352,15 @@ def create_app(db_path: str | None = None) -> FastAPI:
     def patch_opp(opp_id: int, body: OppPatchIn):
         try:
             return store.patch_opportunity(opp_id, **body.model_dump())
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.post("/api/opportunities")
+    def add_opp(body: OppIn):
+        if not body.url.startswith(("http://", "https://")):
+            raise HTTPException(400, "URL must start with http:// or https://")
+        try:
+            return store.upsert_opportunity(**body.model_dump(), source="manual")
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
 
@@ -486,12 +550,25 @@ def _maybe_do(store: Store, message: str) -> dict | None:
 
 def _offline_chat(message: str, snapshot: dict) -> str:
     msg = message.lower()
+    opps = snapshot["opportunities"]
     if "didn" in msg and "apply" in msg or "opened" in msg:
         seen = [o for o in snapshot["opportunities"] if o["state"] == "seen"]
         if not seen:
             return "No seen-but-unapplied postings in the tracker yet."
         lines = "\n".join(f"- {o.get('role') or o['url']} ({o['url']})" for o in seen)
         return f"Opened, not applied:\n{lines}"
+    if any(word in msg for word in ("tracker", "applications", "opportunities", "conferences")):
+        if not opps:
+            return "The tracker is empty. Add a program in Programs, or let mail and browsing capture one."
+        states: dict[str, int] = {}
+        kinds: dict[str, int] = {}
+        for opp in opps:
+            states[opp["state"]] = states.get(opp["state"], 0) + 1
+            kinds[opp["kind"]] = kinds.get(opp["kind"], 0) + 1
+        active = [o for o in opps if o["state"] not in {"offer", "rejected", "skipped", "ignored"}]
+        state_line = ", ".join(f"{value} {key}" for key, value in sorted(states.items()))
+        kind_line = ", ".join(f"{value} {key}" for key, value in sorted(kinds.items()))
+        return f"You have {len(opps)} tracked: {kind_line}. Status: {state_line}. {len(active)} still active."
     if snapshot["needs_gate"]:
         return "No plan for today. The gate is still waiting."
     plan = snapshot["plan"]

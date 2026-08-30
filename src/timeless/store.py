@@ -208,9 +208,11 @@ class Store:
         self,
         opportunity_id: int,
         *,
+        company: str | None = None,
         role: str | None = None,
         kind: str | None = None,
         url: str | None = None,
+        deadline_at: str | None = None,
     ) -> dict[str, Any]:
         row = self.conn.execute("SELECT * FROM opportunities WHERE id=?", (opportunity_id,)).fetchone()
         if not row:
@@ -220,19 +222,37 @@ class Store:
         self.conn.execute(
             """
             UPDATE opportunities SET
+                company=COALESCE(?, company),
                 role=COALESCE(?, role),
                 kind=COALESCE(?, kind),
                 url=COALESCE(?, url),
+                deadline_at=COALESCE(?, deadline_at),
                 updated_at=?
             WHERE id=?
             """,
-            (role, kind, url, _iso(), opportunity_id),
+            (company, role, kind, url, deadline_at, _iso(), opportunity_id),
         )
         self.conn.commit()
         return row_to_dict(self.conn.execute("SELECT * FROM opportunities WHERE id=?", (opportunity_id,)).fetchone())
 
     def list_opportunities(self) -> list[dict[str, Any]]:
         return [row_to_dict(r) for r in self.conn.execute("SELECT * FROM opportunities ORDER BY updated_at DESC")]
+
+    def get_setting(self, key: str) -> str | None:
+        row = self.conn.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone()
+        return str(row["value"]) if row else None
+
+    def set_setting(self, key: str, value: str) -> None:
+        self.conn.execute(
+            """INSERT INTO app_settings(key, value, updated_at) VALUES (?, ?, ?)
+               ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at""",
+            (key, value, _iso()),
+        )
+        self.conn.commit()
+
+    def delete_setting(self, key: str) -> None:
+        self.conn.execute("DELETE FROM app_settings WHERE key=?", (key,))
+        self.conn.commit()
 
     def propose(self, kind: str, payload: dict, ttl_days: int = 7) -> dict[str, Any]:
         now = _now()

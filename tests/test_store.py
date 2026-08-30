@@ -28,6 +28,16 @@ def test_plan_update_same_day(store):
     assert store.get_plan("2026-08-15")["outcomes"] == "b"
 
 
+def test_app_settings_round_trip(store):
+    assert store.get_setting("google_spreadsheet_id") is None
+    store.set_setting("google_spreadsheet_id", "sheet-1")
+    assert store.get_setting("google_spreadsheet_id") == "sheet-1"
+    store.set_setting("google_spreadsheet_id", "sheet-2")
+    assert store.get_setting("google_spreadsheet_id") == "sheet-2"
+    store.delete_setting("google_spreadsheet_id")
+    assert store.get_setting("google_spreadsheet_id") is None
+
+
 def test_job_url_becomes_seen(store):
     out = store.ingest_url("https://boards.greenhouse.io/acme/jobs/123", "Intern")
     assert out["job"] is True

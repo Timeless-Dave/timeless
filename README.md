@@ -66,3 +66,18 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
 ```
+## Google Sheets tracker
+
+Timeless is the source of truth for internships, conferences, hackathons, and other programs. Google Sheets is an explicit publish target: syncing replaces the dedicated `Tracker` worksheet, so spreadsheet edits cannot silently overwrite local data.
+
+1. Enable the Google Sheets API and create a **Web application** OAuth client.
+2. Add `http://127.0.0.1:8787/oauth/google/callback` as an authorized redirect URI.
+3. Store the rotated credentials outside the repository (the prompt hides the secret):
+
+   ```sh
+   ./scripts/configure-google.sh
+   ```
+
+4. Restart Timeless, open **Programs**, and select **Connect Sheets**.
+
+OAuth client configuration and tokens are stored separately under `~/Library/Application Support/Timeless/`, both with owner-only permissions. Environment variables remain supported for deployments. The app requests only the Google Sheets scope. **Sync** creates the tracker on first use and reuses it afterward; **View sheet** opens it, and **Export CSV** remains available as a fallback.

@@ -89,7 +89,7 @@
   }
 
   function barChart(days, w, h) {
-    const data = days.length ? days : [{ label: "—", count: 0 }];
+    const data = days.length ? days : [{ label: "None", count: 0 }];
     const max = Math.max(...data.map((d) => d.count || 0), 1);
     const pad = { l: 28, r: 8, t: 8, b: 22 };
     const innerW = w - pad.l - pad.r;

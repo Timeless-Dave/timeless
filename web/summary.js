@@ -111,7 +111,7 @@
     const parts = [`${open} open`];
     if (waiting) parts.push(`${waiting} waiting on a reply`);
     if (interview) parts.push(`${interview} in interview pipeline`);
-    return parts.join(" · ");
+    return parts.join(", ");
   }
 
   function sensorSummary(heartbeats, now) {
@@ -120,7 +120,7 @@
     const n = now != null ? now : Date.now();
     const fresh = list.filter((h) => n - parseTs(h.last_seen) < 30 * 60 * 1000).length;
     if (fresh === list.length) return `All ${list.length} sensors checked in recently.`;
-    if (fresh === 0) return `${list.length} sensors — none in the last 30 minutes.`;
+    if (fresh === 0) return `${list.length} sensors, none in the last 30 minutes.`;
     return `${fresh} of ${list.length} sensors active in the last 30 minutes.`;
   }
 
@@ -128,7 +128,7 @@
     const list = (meetings || []).filter((m) => parseTs(m.end_at) > (now != null ? now : Date.now()));
     if (!list.length) return "No upcoming events on the calendar.";
     const next = list.sort((a, b) => parseTs(a.start_at) - parseTs(b.start_at))[0];
-    return `Next: ${next.title} · ${relTime(next.start_at, now)}`;
+    return `Next: ${next.title}, ${relTime(next.start_at, now)}`;
   }
 
   function approvalsSummary(approvals) {
@@ -154,7 +154,7 @@
     if (!quiet || !quiet.active) return "Normal mode";
     const mins = Math.max(1, Math.round((quiet.seconds_left || 0) / 60));
     const level = { quiet: "Focus", mild: "Mild focus", dormant: "Do not disturb" }[quiet.level] || quiet.level;
-    return `${level} · ${mins}m left`;
+    return `${level}, ${mins}m left`;
   }
 
   function metricTone(value, good, warn) {

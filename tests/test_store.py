@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
@@ -18,6 +19,18 @@ def test_empty_plan_rejected(store):
         store.save_plan("", [{"task": "x", "start": "09:00", "end": "10:00"}])
     with pytest.raises(ValueError):
         store.save_plan("ship", [])
+
+
+def test_store_serializes_concurrent_connection_use(store):
+    def exercise(index):
+        store.heartbeat(f"sensor-{index % 4}", str(index))
+        store.heartbeats()
+        store.get_plan("2026-08-30")
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(exercise, range(100)))
+
+    assert len(store.heartbeats()) == 4
 
 
 def test_plan_update_same_day(store):

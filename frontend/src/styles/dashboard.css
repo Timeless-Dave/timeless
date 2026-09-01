@@ -1,0 +1,413 @@
+@import './dashboard-layout.css';
+
+.get-started-hero {
+  position: relative;
+  min-height: 320px;
+  border-radius: var(--radius-shell);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--line);
+  background: var(--panel-dark);
+}
+
+.os-stage { position:relative; min-height:850px; flex:0 0 auto; padding:18px; border-radius:28px; overflow:hidden; background:radial-gradient(circle at 82% 15%,rgba(var(--accent-rgb),.34),transparent 28%),linear-gradient(145deg,#17191e 0%,#2f3034 54%,#18191d 100%); box-shadow:0 34px 90px rgba(25,24,23,.28); isolation:isolate; }
+.os-stage .get-started-hero { min-height:380px; margin:0; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.035); backdrop-filter:blur(18px); box-shadow:inset 0 1px 0 rgba(255,255,255,.18); }
+.os-stage .get-started-hero__particle { width:min(560px,80vw); height:104px; margin-bottom:1.1rem; }
+.os-stage .get-started-hero__particle .particle-text { min-height:0; height:104px; overflow:visible; }
+.os-stage__statement { max-width:520px; margin:0;color:#fff;font-size:clamp(20px,2.6vw,38px);font-weight:650;line-height:1.08;letter-spacing:-.035em; }
+.os-stage__actions { display:flex;gap:10px;margin-top:22px; }.os-stage__actions .ghost{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.28);color:#fff;backdrop-filter:blur(16px)}
+.os-stage__signal { position:absolute;z-index:4;right:40px;top:62px;width:230px;padding:18px;color:#fff;border:1px solid rgba(255,255,255,.22);border-radius:16px;background:rgba(255,255,255,.09);backdrop-filter:blur(22px) saturate(150%);box-shadow:0 18px 55px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.25);transform:rotate(2deg) }
+.os-stage__signal span{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#f8debd}.os-stage__signal strong{display:block;margin-top:8px;font-size:30px}.os-stage__signal p{margin:7px 0 0;color:rgba(255,255,255,.72);font-size:13px}
+.os-stage__section-title{position:relative;z-index:3;margin:26px 0 10px;color:#fff;font-size:22px}
+.os-stage .install-grid{position:relative;z-index:3}.os-stage .command-card{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);color:#fff;backdrop-filter:blur(22px);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.os-stage .command-code{background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.12)}
+.os-stage .glass-jumper{position:relative;z-index:3;margin-top:0}.os-stage .icon-btns{padding:1.8em 0}.focus-interlude{padding-block:10px}
+
+.get-started-hero__bg {
+  position: absolute;
+  inset: 0;
+}
+.get-started-hero__bg .evil-eye-container {
+  opacity: 0.8;
+}
+.get-started-hero__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, rgba(23, 25, 30, 0.88) 0%, rgba(23, 25, 30, 0.6) 45%, rgba(23, 25, 30, 0.2) 75%, transparent 100%);
+  pointer-events: none;
+}
+
+.get-started-hero__content {
+  position: relative;
+  z-index: 2;
+  padding: 2rem 1.75rem;
+  color: #fff;
+}
+
+.get-started-hero__particle {
+  height: 120px;
+  margin-bottom: 0.5rem;
+}
+
+.get-started-hero__particle-fallback {
+  margin: 0 0 0.35rem;
+  color: #fff;
+  font-size: clamp(2.75rem, 6vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.get-started-hero__type {
+  font-size: 16px;
+  color: #cacaca;
+  min-height: 1.5em;
+}
+
+.get-started-section {
+  margin-bottom: 2rem;
+}
+
+.get-started-section h2 {
+  font-size: 20px;
+  margin: 0 0 0.35rem;
+  color: var(--ink);
+}
+
+.get-started-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  margin: 0 0 0.5rem;
+}
+
+.install-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.command-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 16px;
+}
+
+.command-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.command-code {
+  flex: 1;
+  display: block;
+  padding: 0.65rem 0.85rem;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  text-align: left;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.command-action {
+  margin-top: 0.75rem;
+  width: 100%;
+}
+
+.glass-jumper {
+  margin-top: 1rem;
+}
+
+.true-focus-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1.35rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.true-focus-wrap__label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.true-focus-wrap .focus-container { flex: 1; gap: 0.65em; justify-content: space-between; }
+.true-focus-wrap .focus-word { font-size: 1.05rem; font-weight: 700; color: var(--ink); }
+.true-focus-wrap .corner { width: 0.5rem; height: 0.5rem; border-width: 2px; }
+.true-focus-wrap .top-left, .true-focus-wrap .top-right { top: -6px; }
+.true-focus-wrap .bottom-left, .true-focus-wrap .bottom-right { bottom: -6px; }
+.true-focus-wrap .top-left, .true-focus-wrap .bottom-left { left: -6px; }
+.true-focus-wrap .top-right, .true-focus-wrap .bottom-right { right: -6px; }
+
+.pill-nav-slot {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: 0.75rem 1.75rem 0;
+  background: linear-gradient(var(--bg) 70%, transparent);
+}
+
+.pill-nav-slot .pill-nav-container {
+  position: relative;
+  top: auto;
+}
+
+.side-rays-slot {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dark-panel__content {
+  position: relative;
+}
+
+.spiral-slot {
+  height: 340px;
+  margin: 1rem 0 1.5rem;
+}
+.spiral-slot .infinite-spiral { min-height: 0; height: 100%; }
+
+.masonry-slot {
+  position: relative;
+  min-height: 420px;
+}
+
+.folder-programs {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+  padding-bottom: 0.1rem;
+}
+
+/* The stock Folder component's hover "peek" barely shifts the papers (10% -> 0%), so it reads as
+   inert. Widen the peek so the top program name is actually legible before a click, and add a
+   lift + glow so the folder visibly announces itself as interactive. */
+.folder-programs .folder {
+  border-radius: 10px;
+  box-shadow: 0 0 0 0 rgba(208, 135, 38, 0);
+  transition: box-shadow 0.2s ease, transform 0.2s ease-in;
+}
+.folder-programs .folder:hover {
+  box-shadow: 0 12px 28px rgba(208, 135, 38, 0.32);
+}
+.folder-programs .folder:not(.folder--click):hover {
+  transform: translateY(-10px);
+}
+.folder-programs .folder:not(.folder--click):hover .paper {
+  transform: translate(-50%, -55%);
+}
+.folder-programs .paper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ink);
+  overflow: hidden;
+}
+.folder-programs .paper span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.folder-programs__caption {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.effects-shell__content {
+  min-height: 100dvh;
+}
+
+.toast {
+  position: fixed;
+  bottom: 5.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 200;
+  padding: 0.65rem 1rem;
+  background: var(--panel-dark);
+  color: #fff;
+  border-radius: var(--radius-control);
+  box-shadow: 0 1px 50px rgba(0, 0, 0, 0.08);
+  transition: opacity 0.2s, transform 0.2s;
+  font-size: 16px;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast-mint {
+  background: var(--panel-dark);
+  border: 1px solid var(--pastel-mint-icon);
+}
+
+@media (max-width: 1100px) {
+  .install-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.overlay-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  position: relative;
+}
+
+.overlay-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.overlay-bg--full {
+  opacity: 0.95;
+}
+
+.overlay-page .panel,
+.overlay-page .recap-ticket {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+}
+
+.panic-btn {
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.halt-page .warn {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.panel.search-hide {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .get-started-hero {
+    min-height: 240px;
+  }
+  .pill-nav-slot {
+    padding: 0.5rem 1rem 0;
+  }
+  .os-stage{min-height:1380px;margin-inline:0;padding:12px;border-radius:22px}.os-stage .get-started-hero{min-height:410px}.os-stage__signal{position:relative;right:auto;top:auto;width:auto;margin:-34px 12px 20px;transform:none}.os-stage__statement{font-size:25px}.os-stage__actions{flex-wrap:wrap}.os-stage .install-grid{grid-template-columns:1fr}.os-stage .get-started-hero__particle{width:100%;height:130px}.os-stage .glass-jumper-wrap{gap:.25rem}.os-stage .icon-btns{padding:1.2em 0}
+}
+
+.glass-jumper-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 1.1rem;
+  justify-content: flex-start;
+  padding-bottom: 1.6em;
+}
+
+.glass-jumper-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 4.6em;
+}
+
+.glass-jumper-wrap .icon-btns {
+  grid-gap: 0;
+  padding: 0;
+  margin: 0;
+  display: block;
+}
+
+.glass-jumper-wrap .icon-btn {
+  width: 3.4em;
+  height: 3.4em;
+}
+
+/* The generated GlassIcons component paints each icon's back plate with a saturated inline
+   gradient per "color" prop — overridden here (needs !important to beat the inline style) so the
+   whole row reads as one consistent glass system instead of six different candy colors. */
+.glass-jumper-wrap .icon-btn__back {
+  background: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: none;
+}
+.glass-jumper-wrap .icon-btn__front {
+  background-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 0 0.08em rgba(255, 255, 255, 0.22) inset;
+}
+.glass-jumper-wrap .icon-btn__icon {
+  color: #f8debd;
+}
+.glass-jumper-wrap .icon-btn:hover .icon-btn__front,
+.glass-jumper-wrap .icon-btn:focus-visible .icon-btn__front {
+  background-color: rgba(208, 135, 38, 0.28);
+  box-shadow: 0 0 0 0.08em rgba(208, 135, 38, 0.45) inset;
+}
+.glass-jumper-wrap .icon-btn:hover .icon-btn__icon,
+.glass-jumper-wrap .icon-btn:focus-visible .icon-btn__icon {
+  color: #ffffff;
+}
+
+.glass-jumper-wrap .icon-btn__label {
+  display: none;
+}
+
+.glass-jumper-caption {
+  margin-top: 0.5rem;
+  width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.glass-jumper-hit {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}

@@ -10,9 +10,8 @@
   <div class="recap-stage">
     <div class="recap-ticket card" id="card">
       <div class="recap-dots" id="dots"></div>
-      <div class="recap-kicker" id="kicker">Recap</div>
       <h1 class="recap-title" id="title">Loading</h1>
-      <div class="recap-stat" id="stat">—</div>
+      <div class="recap-stat" id="stat">Pending</div>
       <div class="stat-label" id="stat-label"></div>
       <div class="recap-bar"></div>
       <p class="recap-body" id="body">Pulling the day, including the phone if it will answer.</p>
@@ -39,9 +38,8 @@
     }
     function paint() {
       const c = cards[i] || {};
-      el("kicker").textContent = c.kicker || "Recap";
       el("title").textContent = c.title || "";
-      el("stat").textContent = c.stat || "—";
+      el("stat").textContent = c.stat || "Pending";
       el("stat-label").textContent = c.stat_label || "";
       el("body").textContent = c.body || "";
       const extra = el("extra");
@@ -69,7 +67,6 @@
     }
     function phoneStep() {
       el("dots").innerHTML = "";
-      el("kicker").textContent = "Phone";
       el("title").textContent = "Reconnect";
       el("stat").textContent = "ADB";
       el("stat-label").textContent = "";

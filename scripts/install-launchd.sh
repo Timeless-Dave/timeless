@@ -13,6 +13,11 @@ if [ ! -x "$VENV/bin/timeless" ]; then
   "$VENV/bin/pip" install -e "$ROOT" -q
 fi
 
+if [ -f "$ROOT/frontend/package.json" ]; then
+  echo "Building frontend SPA…"
+  (cd "$ROOT/frontend" && npm ci && npm run build)
+fi
+
 if [ ! -x "$ROOT/dist/TimelessOverlay" ]; then
   swiftc -O -o "$ROOT/dist/TimelessOverlay" "$ROOT/macos/TimelessOverlay.swift" -framework Cocoa -framework WebKit
 fi

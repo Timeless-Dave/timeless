@@ -6,7 +6,7 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#fffcf8" />
-  <title>Timeless — halt</title>
+  <title>Timeless - halt</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body class="halt-page">
@@ -35,14 +35,14 @@
       </div>
     </div>
   </div>
-  <button type="button" class="panic-btn" id="panic">Panic · 1h quiet</button>
+  <button type="button" class="panic-btn" id="panic">Panic, 1h quiet</button>
   <script src="/static/summary.js"></script>
   <script src="/static/ui.js"></script>
   <script src="/static/theme.js"></script>
   <script src="/static/app.js"></script>
   <script>
     const S = window.Summary;
-    const labels = { start_30m: "30 min · virtual", start_2h: "2 hours · leave soon", start_1d: "Tomorrow · prep", course_15m: "15 min · class begins", submit_4h: "4 hours · submit", present_30m: "30 min · present", deadline_7d: "7 days · plan the application", deadline_1d: "Tomorrow · application due", deadline_4h: "4 hours · application due" };
+    const labels = { start_30m: "30 min, virtual", start_2h: "2 hours, leave soon", start_1d: "Tomorrow, prep", course_15m: "15 min, class begins", submit_4h: "4 hours, submit", present_30m: "30 min, present", deadline_7d: "7 days, plan the application", deadline_1d: "Tomorrow, application due", deadline_4h: "4 hours, application due" };
     let halt = null;
     let miss = 0;
     let busy = false;
@@ -110,10 +110,10 @@
       el("title").textContent = halt.title;
       el("when").textContent = formatWhen(halt.start_at, halt.end_at);
       const why = reminder
-        ? `${halt.kind || "event"} · ${halt.modality || ""} · ${labels[halt.purpose] || halt.purpose}`
-        : "Meeting now · " + S.relTime(halt.start_at);
+        ? `${halt.kind || "event"}, ${halt.modality || ""}, ${labels[halt.purpose] || halt.purpose}`
+        : "Meeting now, " + S.relTime(halt.start_at);
       el("meta").innerHTML = reminder
-        ? `<span class="chip cyan">${halt.kind || "event"}</span><span class="chip amber">${halt.modality || "—"}</span>`
+        ? `<span class="chip cyan">${halt.kind || "event"}</span><span class="chip amber">${halt.modality || "Not set"}</span>`
         : `<span class="chip rose">Meeting</span>`;
       el("copy").textContent = why;
       el("hint").textContent = halt.im_in_hint || "";
@@ -202,7 +202,7 @@
       setBusy(true);
       try {
         await api("/api/quiet/panic", { method: "POST" });
-        await leaveAfter("Panic mode · dormant for 1 hour.", true);
+        await leaveAfter("Panic mode, dormant for 1 hour.", true);
       } catch (e) {
         setBusy(false);
         setStatus(e.message, false);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Timeless — daily gate</title>
+  <title>Timeless - daily gate</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body class="gate-page">
@@ -47,7 +47,7 @@
     function goalEl(value) {
       const row = document.createElement("div");
       row.className = "goal-row";
-      row.innerHTML = `<span class="goal-number" aria-hidden="true"></span><input class="goal-input" placeholder="e.g. Submit two applications" value="${(value || "").replace(/&/g, "&amp;").replace(/\"/g, "&quot;")}" /><button type="button" class="goal-remove ghost" aria-label="Remove goal">×</button>`;
+      row.innerHTML = `<span class="goal-number" aria-hidden="true"></span><input class="goal-input" placeholder="e.g. Submit two applications" value="${(value || "").replace(/&/g, "&amp;").replace(/\"/g, "&quot;")}" /><button type="button" class="goal-remove ghost" aria-label="Remove goal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg></button>`;
       row.querySelector(".goal-remove").onclick = () => { row.remove(); numberGoals(); };
       return row;
     }
@@ -63,7 +63,7 @@
     function blockEl(start, end, task) {
       const wrap = document.createElement("div");
       wrap.className = "gate-block-row";
-      wrap.innerHTML = `<label><span>Start</span><input type="time" class="block-time start" value="${start || "09:00"}" /></label><label><span>End</span><input type="time" class="block-time end" value="${end || "10:00"}" /></label><label class="block-task"><span>Focus</span><input class="task" placeholder="What you'll do" value="${(task || "").replace(/"/g, "&quot;")}" /></label><button type="button" class="goal-remove ghost" aria-label="Remove time block">×</button>`;
+      wrap.innerHTML = `<label><span>Start</span><input type="time" class="block-time start" value="${start || "09:00"}" /></label><label><span>End</span><input type="time" class="block-time end" value="${end || "10:00"}" /></label><label class="block-task"><span>Focus</span><input class="task" placeholder="What you'll do" value="${(task || "").replace(/"/g, "&quot;")}" /></label><button type="button" class="goal-remove ghost" aria-label="Remove time block"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg></button>`;
       wrap.querySelector("button").onclick = () => wrap.remove();
       return wrap;
     }

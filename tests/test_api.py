@@ -18,6 +18,30 @@ def test_access_lists_urls_on_loopback(tmp_path):
     assert any("127.0.0.1" in u for u in r.json()["urls"])
 
 
+def test_static_assets_load_for_remote_clients_without_token(tmp_path):
+    from timeless.app import FRONTEND_DIST, WEB
+
+    app = create_app(str(tmp_path / "api.db"))
+    with TestClient(app, client=("100.64.0.2", 50000)) as c:
+        if FRONTEND_DIST.exists():
+            assets = FRONTEND_DIST / "assets"
+            css_files = list(assets.glob("*.css")) if assets.exists() else []
+            assert css_files, "frontend dist missing CSS assets"
+            asset = c.get("/assets/" + css_files[0].name)
+            assert asset.status_code == 200
+            assert "text/css" in asset.headers["content-type"]
+            gated = c.get("/")
+            assert gated.status_code == 401
+            assert gated.json()["detail"] == "token required"
+        else:
+            response = c.get("/static/style.css")
+            assert response.status_code == 200
+            assert "text/css" in response.headers["content-type"]
+        legacy = c.get("/static/style.css")
+        if WEB.exists():
+            assert legacy.status_code == 200
+
+
 def test_today_does_not_generate_recap_or_pull_phone(monkeypatch, tmp_path):
     monkeypatch.setattr(
         "timeless.app.ensure_recap",

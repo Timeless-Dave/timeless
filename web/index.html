@@ -7,6 +7,14 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
+  <!--
+    THESIS: Timeless is a daily control surface, not a collection of dashboard widgets.
+    OWN-WORLD: warm mineral surfaces, charcoal type, one amber accent, pill navigation, and quiet tactile controls.
+    STORY: see what matters now, act, then compare the intended day with observed activity.
+    FIRST VIEWPORT: compact navigation above an asymmetric bento of current priorities, plan alignment, and live signals.
+    FORM: Daily Control Surface, pinned by the supplied bento and pill-navigation brief. CONCEPT-ROLL-SEED: user-pinned-bento-pill-nav-2026-08-30.
+    FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
   <div class="app-shell">
     <div class="shell-card">
     <nav class="rail" aria-label="Sections">
@@ -93,7 +101,7 @@
 
               <section class="card next-strip" id="next-strip">
                 <strong>Upcoming</strong>
-                <span class="chip cyan" id="next-when">—</span>
+                <span class="chip cyan" id="next-when">None</span>
                 <span class="next-detail" id="next-detail">Nothing scheduled.</span>
               </section>
 
@@ -192,9 +200,9 @@
               <p class="sub-dark" id="sensor-summary"></p>
               <span class="chip neutral" id="focus-chip">Normal mode</span>
               <div class="measure-row" id="measure-row"></div>
-              <div class="card-head" style="margin-top:0.5rem">
-                <h2 style="font-size:18px">Year</h2>
-                <span class="meta" id="heat-meta" style="color:var(--muted-on-dark)"></span>
+              <div class="card-head year-head">
+                <h2>Year</h2>
+                <span class="meta" id="heat-meta"></span>
               </div>
               <div id="heat"></div>
               <hr class="dark-divider" />
@@ -203,7 +211,7 @@
                 <button type="button" id="ph-w">Wireless</button>
                 <button type="button" class="ghost" id="ph-u">USB</button>
               </div>
-              <p class="sub-dark" id="phone-msg" style="font-weight:400;font-size:14px">Reconnect phone on hotspot or USB.</p>
+              <p class="sub-dark phone-message" id="phone-msg">Reconnect phone on hotspot or USB.</p>
               <div class="scroll" id="heart"></div>
             </aside>
           </div>
@@ -232,6 +240,7 @@
     </div>
   </div>
 
+  <script src="/static/components.js"></script>
   <script src="/static/summary.js"></script>
   <script src="/static/ui.js"></script>
   <script src="/static/theme.js"></script>
@@ -303,7 +312,7 @@
             <div class="metric-icon cyan">${U.iconPlan()}</div>
             <div><p class="metric-label">Plan alignment</p></div>
           </div>
-          <div class="metric-value-row"><span class="metric-value">${score == null ? "—" : score}</span><span class="metric-unit">${score == null ? "estimate" : "/ 100"}</span></div>
+          <div class="metric-value-row"><span class="metric-value">${score == null ? "Pending" : score}</span><span class="metric-unit">${score == null ? "estimate" : "/ 100"}</span></div>
           <span class="chip ${score == null ? "neutral" : score >= 75 ? "mint" : score >= 50 ? "amber" : "rose"}">${score == null ? "Collecting activity" : productivity.coverage + " coverage"}</span>
           <div class="metric-spark">${U.sparkline([productivity.minutes?.distracting || 0, productivity.minutes?.productive_off_plan || 0, productivity.minutes?.aligned || 0], "var(--pastel-cyan-icon)", 173, 72, "spark-alignment")}</div>
         </article>`;
@@ -312,11 +321,11 @@
     function paintProductivity(t) {
       const p = t.productivity || {};
       const minutes = p.minutes || {};
-      el("productivity-coverage").textContent = `${p.coverage || "low"} coverage · ${p.tracked_minutes || 0}m tracked`;
+      el("productivity-coverage").textContent = `${p.coverage || "low"} coverage, ${p.tracked_minutes || 0}m tracked`;
       if (p.score == null) {
         el("productivity-summary").textContent = "Not enough classified activity yet. Unknown time is not scored against you.";
       } else {
-        el("productivity-summary").textContent = `${p.score}/100 estimated productivity · ${p.alignment == null ? "no planned work observed yet" : p.alignment + "% of productive time matched the plan"}.`;
+        el("productivity-summary").textContent = `${p.score}/100 estimated productivity. ${p.alignment == null ? "No planned work observed yet" : p.alignment + "% of productive time matched the plan"}.`;
       }
       const parts = [
         ["aligned", "Plan-aligned", minutes.aligned || 0],
@@ -327,7 +336,7 @@
       const total = Math.max(1, parts.reduce((sum, part) => sum + part[2], 0));
       const bars = `<div class="alignment-bar" aria-label="Productivity time breakdown">${parts.map(([tone, label, value]) => `<span class="${tone}" style="width:${(value / total) * 100}%" title="${label}: ${value}m"></span>`).join("")}</div>`;
       const legend = `<div class="alignment-legend">${parts.map(([tone, label, value]) => `<span><i class="${tone}"></i>${label}<strong>${value}m</strong></span>`).join("")}</div>`;
-      const evidence = (p.evidence || []).slice(0, 5).map((item) => `<li><span>${esc(item.title)}</span><span class="chip neutral">${esc(item.category)} · ${item.minutes}m</span></li>`).join("");
+      const evidence = (p.evidence || []).slice(0, 5).map((item) => `<li><span>${esc(item.title)}</span><span class="chip neutral">${esc(item.category)}, ${item.minutes}m</span></li>`).join("");
       el("productivity-breakdown").innerHTML = bars + legend + (evidence ? `<ul class="activity-evidence">${evidence}</ul>` : "");
     }
 
@@ -345,12 +354,12 @@
     function paintNext(t) {
       const m = nextMeeting(t.meetings);
       if (!m) {
-        el("next-when").textContent = "—";
+        el("next-when").textContent = "None";
         el("next-detail").textContent = "Nothing upcoming on the calendar.";
         return;
       }
       el("next-when").textContent = S.relTime(m.start_at);
-      el("next-detail").textContent = m.title + (m.join_url ? " · Join ready" : "");
+      el("next-detail").textContent = m.title + (m.join_url ? ", join link ready" : "");
     }
 
     function paintDark(t) {
@@ -362,7 +371,7 @@
       el("tile-events").textContent = String(ps.events);
       el("ruler-blocks").innerHTML = U.rulerTicks(Math.min(8, ps.blocks));
       el("ruler-events").innerHTML = U.rulerTicks(Math.min(8, ps.events));
-      el("progress-pct").textContent = score == null ? "—" : score + "/100";
+      el("progress-pct").textContent = score == null ? "Pending" : score + "/100";
       el("progress-chip").textContent = score == null ? "Collecting activity" : `${productivity.alignment ?? 0}% aligned`;
       el("progress-chip").className = "chip " + (score == null ? "neutral" : score >= 75 ? "mint" : score >= 50 ? "amber" : "rose");
       el("progress-range").innerHTML = U.rangeBar(score || 0);
@@ -380,9 +389,9 @@
       const banner = el("quiet-banner");
       if (!q || !q.active) { banner.hidden = true; return; }
       const mins = Math.max(1, Math.round((q.seconds_left || 0) / 60));
-      let extra = t.muted_halt ? ` · muted: ${esc(t.muted_halt.title)}` : "";
+      let extra = t.muted_halt ? `, muted: ${esc(t.muted_halt.title)}` : "";
       banner.hidden = false;
-      banner.innerHTML = `<span>Focus · ${esc(q.level)} · ${mins}m left${extra}</span>
+      banner.innerHTML = `<span>Focus: ${esc(q.level)}, ${mins}m left${extra}</span>
         <button type="button" class="ghost" id="quiet-end">End now</button>`;
     }
 
@@ -440,7 +449,7 @@
     function blockHtml(b) {
       return `<div class="block-row" data-block>
         <button type="button" class="time-btn" data-k="start" title="Start">${esc(b.start || "09:00")}</button>
-        <span class="block-sep">–</span>
+        <span class="block-sep">to</span>
         <button type="button" class="time-btn" data-k="end" title="End">${esc(b.end || "10:00")}</button>
         <input class="task" data-k="task" placeholder="What you'll do" value="${esc(b.task || "")}" />
       </div>`;
@@ -457,7 +466,7 @@
       const blocks = (plan.timeline && plan.timeline.length) ? plan.timeline.map(blockHtml).join("") : blockHtml({ start: "09:00", end: "10:00", task: "" });
       el("plan").innerHTML = `<div class="card-head"><h2>Today</h2><input type="date" id="plan-day" class="inline-date" value="${esc(planDay)}" min="${esc(t.day)}" /></div>
         <p class="card-lead">${S.planBlocks(plan) ? S.planBlocks(plan) + " blocks locked in for this day." : "Add blocks so the day has a shape."}</p>
-        <div class="semester-strip"><span><strong>${esc(academics.name || "Study presets")}</strong>${academics.courses?.length ? ` · ${academics.courses.length} courses` : ""}</span><button type="button" class="ghost small-btn" id="sync-academic-calendar">Add to Calendar</button></div>
+        <div class="semester-strip"><span><strong>${esc(academics.name || "Study presets")}</strong>${academics.courses?.length ? `, ${academics.courses.length} courses` : ""}</span><button type="button" class="ghost small-btn" id="sync-academic-calendar">Add to Calendar</button></div>
         <label class="compact-label">Done means</label>
         ${presetChips()}
         <textarea id="outcomes" class="compact-area" rows="2" placeholder="What counts as a win today">${esc(plan.outcomes || "")}</textarea>
@@ -507,7 +516,7 @@
       const days = t.heatmap || [];
       const active = days.filter((d) => (d.count || 0) > 0).length;
       const total = days.reduce((n, d) => n + (d.count || 0), 0);
-      el("heat-meta").textContent = days.length ? `${active} active days · ${total} events logged` : "";
+      el("heat-meta").textContent = days.length ? `${active} active days, ${total} events logged` : "";
       const heat = days.map((d) => {
         const n = d.count || 0;
         const lvl = n === 0 ? 0 : n < 3 ? 1 : n < 8 ? 2 : n < 20 ? 3 : 4;
@@ -525,7 +534,7 @@
         if (generation !== refreshGeneration) return;
         const remote = (a.urls || []).filter((u) => !u.includes("127.0.0.1"));
         if (remote.length) {
-          el("heart").innerHTML += "<p class=\"sub-dark\" style=\"font-weight:400;font-size:13px\">Phone URLs</p><ul style=\"color:var(--muted-on-dark);font-size:13px\">" + remote.map((u) => `<li><code>${esc(u)}</code></li>`).join("") + "</ul>";
+          el("heart").innerHTML += "<p class=\"sub-dark phone-links-title\">Phone URLs</p><ul class=\"phone-links\">" + remote.map((u) => `<li><code>${esc(u)}</code></li>`).join("") + "</ul>";
         }
       } catch (_) {}
     }
@@ -561,7 +570,7 @@
         if (t.needs_gate) { location.href = "/gate"; return; }
       }
       const statusText = t.brain === "online"
-        ? `${t.day} · ${t.tz}${t.quiet && t.quiet.active ? " · Focus on" : ""}`
+        ? `${t.day}, ${t.tz}${t.quiet && t.quiet.active ? ", Focus on" : ""}`
         : "Brain offline";
       el("status").textContent = statusText;
       el("page-date").textContent = formatPageDate(t.day);
@@ -605,7 +614,7 @@
       else if (!connected) el("google-status").textContent = "Google Sheets not connected";
       else if (state.dirty) el("google-status").textContent = "Changes waiting to sync";
       else if (state.last_synced_at) el("google-status").textContent = "Synced " + S.relTime(state.last_synced_at);
-      else el("google-status").textContent = "Connected · ready to create your sheet";
+      else el("google-status").textContent = "Connected and ready to create your sheet";
       if (connected && state.dirty && !googleBusy && Date.now() >= googleRetryAt) syncGoogle(true);
     }
 
@@ -802,7 +811,7 @@
       const banner = el("connection-banner");
       banner.hidden = false;
       banner.innerHTML = `<span><strong>Connection lost.</strong> Showing the last available dashboard.</span><button type="button" class="ghost" id="retry-connection">Retry</button>`;
-      el("status").textContent = "Brain offline — " + (err.message || "unreachable");
+      el("status").textContent = "Brain offline: " + (err.message || "unreachable");
     }
     async function connectedRefresh(opts) {
       try { await refresh(opts); el("connection-banner").hidden = true; }

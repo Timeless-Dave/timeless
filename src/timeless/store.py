@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 import re
+from functools import wraps
 from datetime import datetime, timedelta, timezone
+from threading import RLock
 from typing import Any
 
 from timeless.classify_event import URL_RE, classify_event, is_join_url, looks_like_presentation, looks_like_submission, mail_matches_event, pick_join_url
@@ -40,6 +42,10 @@ def row_to_dict(row) -> dict[str, Any]:
 
 class Store:
     def __init__(self, db_path: str):
+        # FastAPI runs synchronous endpoints in a worker pool while the Mac
+        # sensors ingest concurrently. A sqlite connection may be shared only
+        # when every complete Store operation is serialized.
+        self._lock = RLock()
         self.db_path = db_path
         self.conn = connect(db_path)
 
@@ -1078,3 +1084,20 @@ class Store:
             days.append({"day": key, "count": counts.get(key, 0)})
             cur += timedelta(days=1)
         return days
+
+
+def _serialized(method):
+    @wraps(method)
+    def guarded(self, *args, **kwargs):
+        with self._lock:
+            return method(self, *args, **kwargs)
+
+    return guarded
+
+
+# Store methods often call one another, so this deliberately uses an RLock.
+# Wrapping at the class boundary keeps multi-statement reads and writes atomic
+# without scattering lock bookkeeping across every query method.
+for _method_name, _method in list(vars(Store).items()):
+    if _method_name != "__init__" and callable(_method) and not _method_name.startswith("__"):
+        setattr(Store, _method_name, _serialized(_method))

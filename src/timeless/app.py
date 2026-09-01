@@ -21,7 +21,9 @@ from timeless.local_cmd import apply_local, parse_local
 from timeless.recap import build_cards, connect_phone, ensure_recap
 from timeless.store import Store
 
-WEB = Path(__file__).resolve().parents[2] / "web"
+ROOT = Path(__file__).resolve().parents[2]
+WEB = ROOT / "web"
+FRONTEND_DIST = ROOT / "frontend" / "dist"
 DEFAULT_DB = Path.home() / "Library" / "Application Support" / "Timeless" / "timeless.db"
 
 
@@ -169,6 +171,11 @@ def create_app(db_path: str | None = None) -> FastAPI:
 
     @app.middleware("http")
     async def require_token(request: Request, call_next):
+        # Browsers do not copy the page's token query string to CSS, script, or
+        # font requests. These files contain no personal data, so serve them
+        # without authentication while keeping pages and APIs protected.
+        if request.url.path.startswith("/static/") or request.url.path.startswith("/assets/") or request.url.path.startswith("/fonts/"):
+            return await call_next(request)
         host = request.client.host if request.client else ""
         provided = request.headers.get("authorization") or ""
         if provided.lower().startswith("bearer "):
@@ -533,24 +540,48 @@ def create_app(db_path: str | None = None) -> FastAPI:
                 "offline": True,
             }
 
-    if WEB.exists():
+    legacy_pages = {
+        "/gate": WEB / "gate.html",
+        "/halt": WEB / "halt.html",
+        "/recap": WEB / "recap.html",
+    }
+
+    if WEB.exists() or FRONTEND_DIST.exists():
+
+        def _spa_page(path: str):
+            if FRONTEND_DIST.exists():
+                return FileResponse(FRONTEND_DIST / "index.html")
+            if path == "/":
+                return FileResponse(WEB / "index.html")
+            legacy = legacy_pages.get(path)
+            if legacy and legacy.exists():
+                return FileResponse(legacy)
+            return FileResponse(WEB / "index.html")
+
         @app.get("/")
         def index():
-            return FileResponse(WEB / "index.html")
+            return _spa_page("/")
 
         @app.get("/gate")
         def gate():
-            return FileResponse(WEB / "gate.html")
+            return _spa_page("/gate")
 
         @app.get("/halt")
         def halt():
-            return FileResponse(WEB / "halt.html")
+            return _spa_page("/halt")
 
         @app.get("/recap")
         def recap_page():
-            return FileResponse(WEB / "recap.html")
+            return _spa_page("/recap")
 
-        app.mount("/static", StaticFiles(directory=WEB), name="static")
+        if FRONTEND_DIST.exists():
+            assets_dir = FRONTEND_DIST / "assets"
+            if assets_dir.exists():
+                app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+            app.mount("/static", StaticFiles(directory=WEB), name="static")
+            app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=False), name="spa-root")
+        else:
+            app.mount("/static", StaticFiles(directory=WEB), name="static")
 
     return app
 

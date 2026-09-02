@@ -60,7 +60,28 @@ export default function HaltPage({ showToast }) {
           <p>{halt?.halt_kind === 'reminder' ? 'Reminder' : `Meeting now, ${halt ? relTime(halt.start_at) : ''}`}</p>
           {status ? <p>{status}</p> : null}
           <div className="row">
-            {halt?.join_url ? (
+            {halt?.can_open_link ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    await api(`/api/meetings/${meetingId()}/join`, {
+                      method: 'POST',
+                      body: JSON.stringify({ reminder_id: halt.id }),
+                    });
+                    await leave('Link opened — you will be reminded again at start time.');
+                  } catch (e) {
+                    setBusy(false);
+                    setStatus(e.message);
+                  }
+                }}
+              >
+                Open link
+              </button>
+            ) : null}
+            {halt?.requires_join ? (
               <button
                 type="button"
                 disabled={busy}

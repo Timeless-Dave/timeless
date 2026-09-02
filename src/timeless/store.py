@@ -22,6 +22,19 @@ VALID_STATES = frozenset(
 )
 VALID_KINDS = frozenset({"internship", "hackathon", "conference", "other"})
 MEETING_ACKS = frozenset({"join", "im_in"})
+EARLY_REMINDER_PURPOSES = frozenset(
+    {
+        "start_30m",
+        "start_2h",
+        "start_1d",
+        "present_30m",
+        "submit_4h",
+        "deadline_7d",
+        "deadline_1d",
+        "deadline_4h",
+        "course_15m",
+    }
+)
 
 
 def _now() -> datetime:
@@ -672,7 +685,7 @@ class Store:
         elif present and looks_like_presentation(title, notes) and not looks_like_submission(title, notes):
             fires = [("present_30m", start - timedelta(minutes=30))]
         else:
-            fires = reminder_fires(kind, modality, start, submit=submit, present=present)
+            fires = reminder_fires(kind, modality, start, submit=submit, present=present, now=_now())
         purposes = [purpose for purpose, _ in fires]
         if purposes:
             placeholders = ",".join("?" for _ in purposes)
@@ -850,7 +863,11 @@ class Store:
         modality = (meeting.get("modality") or out.get("modality") or "virtual").lower()
         physical = modality == "physical"
         reminder = out.get("halt_kind") == "reminder"
-        out["requires_join"] = bool(join_url) and not physical
+        purpose = out.get("purpose")
+        early_reminder = reminder and purpose in EARLY_REMINDER_PURPOSES
+        out["early_reminder"] = early_reminder
+        out["requires_join"] = bool(join_url) and not physical and not early_reminder
+        out["can_open_link"] = bool(join_url) and early_reminder
         out["can_im_in"] = not reminder and not out["requires_join"]
         out["can_headed"] = reminder and physical and out.get("purpose") == "start_2h"
         if out["requires_join"]:
@@ -869,6 +886,12 @@ class Store:
         url = self._meeting_join_url(data)
         if not url:
             raise ValueError("no join link for this meeting")
+        purpose = None
+        if reminder_id is not None:
+            rem = self.conn.execute("SELECT purpose FROM reminders WHERE id=?", (reminder_id,)).fetchone()
+            if rem:
+                purpose = rem["purpose"]
+        early = purpose in EARLY_REMINDER_PURPOSES
         from timeless.hands import run as run_hands
 
         run_hands({"action": "open_url", "target": "mac", "url": url})
@@ -876,6 +899,14 @@ class Store:
             run_hands({"action": "open_url", "target": "phone", "url": url})
         except Exception:
             pass
+        if early:
+            if reminder_id is not None:
+                self.conn.execute(
+                    "UPDATE reminders SET acked_at=? WHERE id=? AND acked_at IS NULL",
+                    (_iso(), reminder_id),
+                )
+                self.conn.commit()
+            return {"ok": True, "url": url, "meeting": data, "early": True}
         out = self.ack_meeting(meeting_id, "join")
         if reminder_id is not None:
             self.conn.execute(
@@ -889,6 +920,7 @@ class Store:
         now_dt = now or _now()
         now_s = _iso(now_dt)
         floor = _iso(now_dt - timedelta(hours=18))
+        soon = _iso(now_dt + timedelta(hours=24))
         row = self.conn.execute(
             """
             SELECT r.id, r.purpose, r.due_at, r.event_uid, m.id AS meeting_id, m.title, m.join_url,
@@ -897,9 +929,10 @@ class Store:
             JOIN meetings m ON m.uid = r.event_uid
             WHERE r.acked_at IS NULL AND r.due_at <= ? AND r.due_at >= ? AND m.end_at > ?
               AND NOT (r.purpose LIKE 'start_%' AND m.start_at <= ?)
+              AND NOT (r.purpose = 'start_1d' AND m.start_at <= ?)
             ORDER BY r.due_at LIMIT 1
             """,
-            (now_s, floor, now_s, now_s),
+            (now_s, floor, now_s, now_s, soon),
         ).fetchone()
         if not row:
             return None

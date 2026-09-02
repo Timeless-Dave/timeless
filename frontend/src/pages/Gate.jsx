@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EffectsShell from '@/components/EffectsShell';
+import OverlayBackground from '@/components/OverlayBackground';
 import PlanEditor from '@/components/PlanEditor';
-import SideRays from '@/components/SideRays';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { api } from '@/lib/api';
 
@@ -57,12 +57,8 @@ export default function GatePage({ showToast }) {
   return (
     <EffectsShell enableGlow={false}>
       <div className="overlay-page gate-page">
-        {!reduce ? (
-          <div className="overlay-bg">
-            <SideRays speed={1.5} rayColor1="#d08726" rayColor2="#f8debd" intensity={1.2} origin="top-left" opacity={0.7} />
-          </div>
-        ) : null}
-        <div className="panel card">
+        {!reduce ? <OverlayBackground variant="warm" /> : null}
+        <div className="panel card gate-panel">
           <p className="get-started-kicker">Daily gate</p>
           <h1 className="page-title">Lock a plan</h1>
           <p className="card-lead">Today stays locked until this day&apos;s plan is saved.</p>

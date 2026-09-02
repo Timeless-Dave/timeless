@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -115,6 +116,20 @@ def _pretty_day(day: str) -> str:
     return d.strftime("%A, %b %d").replace(" 0", " ")
 
 
+def _short_weekday(day: str) -> str:
+    try:
+        return datetime.strptime(day, "%Y-%m-%d").strftime("%a")
+    except ValueError:
+        return day[:3]
+
+
+def _split_goals(outcomes: str) -> list[str]:
+    lines: list[str] = []
+    for chunk in re.split(r"[\n;]+", outcomes or ""):
+        text = re.sub(r"^\s*(?:[-•]|\d+[.)])\s*", "", chunk).strip()
+        if text:
+            lines.append(text)
+    return lines
 def _block_line(block: dict[str, Any]) -> str:
     start = str(block.get("start") or "").strip()
     end = str(block.get("end") or "").strip()
@@ -129,7 +144,7 @@ def day_stats(store: Store, day: str) -> dict[str, Any]:
     events = store.events_on_day(day)
     return {
         "day": day,
-        "label": _pretty_day(day)[:3],
+        "label": _short_weekday(day),
         "blocks": len((plan or {}).get("timeline") or []),
         "events": len(events),
         "had_plan": plan is not None,
@@ -160,6 +175,7 @@ def build_cards(store: Store, day: str, phone_synced: bool) -> list[dict[str, An
     top_lines = [f"{name} — {n} times" for name, n in ranked]
     blocks = (plan or {}).get("timeline") or []
     outcomes = ((plan or {}).get("outcomes") or "").strip()
+    goal_lines = _split_goals(outcomes)
     week = week_compare(store, day)
     productivity = store.productivity_on_day(day)
     productivity_minutes = productivity.get("minutes") or {}
@@ -176,10 +192,14 @@ def build_cards(store: Store, day: str, phone_synced: bool) -> list[dict[str, An
         {
             "kicker": "Plan",
             "title": "What you set out to do",
-            "stat": str(len(blocks)),
-            "stat_label": "time blocks",
-            "body": outcomes or "You did not lock a plan for this day.",
-            "lines": [_block_line(b) for b in blocks if str(b.get("task") or "").strip()],
+            "stat": str(len(goal_lines) or len(blocks)),
+            "stat_label": "goals" if goal_lines else "time blocks",
+            "body": (
+                "Your goals for the day:"
+                if goal_lines
+                else ("You did not lock a plan for this day." if not blocks else "Time blocks you set:")
+            ),
+            "lines": goal_lines + [_block_line(b) for b in blocks if str(b.get("task") or "").strip()],
         },
         {
             "kicker": "Mac",

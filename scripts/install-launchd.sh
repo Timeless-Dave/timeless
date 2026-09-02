@@ -15,7 +15,7 @@ fi
 
 if [ -f "$ROOT/frontend/package.json" ]; then
   echo "Building frontend SPA…"
-  (cd "$ROOT/frontend" && npm ci && npm run build)
+  (cd "$ROOT/frontend" && pnpm install --frozen-lockfile && pnpm run build)
 fi
 
 if [ ! -x "$ROOT/dist/TimelessOverlay" ]; then

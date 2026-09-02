@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import Folder from '@/components/Folder';
-import Masonry from '@/components/Masonry';
 import { approvalFields } from '@/lib/approvals';
 import { api } from '@/lib/api';
+import { copyText, formatFieldValue } from '@/lib/format';
+import { inferProgram, programFolderLabel } from '@/lib/programs';
 import { mailChipTone, mailTypeLabel, relTime, stateLabel, when } from '@/lib/summary';
 
 const OPP_KINDS = ['internship', 'hackathon', 'conference', 'other'];
@@ -30,6 +31,11 @@ export function EventsSection({ meetings, onRefresh, showToast, searchHide }) {
     await onRefresh({ force: true });
   };
 
+  const copyLink = async url => {
+    const ok = await copyText(url);
+    showToast(ok ? 'Link copied.' : 'Could not copy link.');
+  };
+
   return (
     <section className={`card panel${searchHide ? ' search-hide' : ''}`} id="panel-events">
       <div className="card-head">
@@ -49,10 +55,8 @@ export function EventsSection({ meetings, onRefresh, showToast, searchHide }) {
             <tbody>
               {meetings.map(m => (
                 <tr key={m.id}>
-                  <td>
-                    {when(m.start_at)}
-                    <br />
-                    <span className="chip cyan">{relTime(m.start_at)}</span>
+                  <td className="event-when" title={when(m.start_at)}>
+                    {relTime(m.start_at)}
                   </td>
                   <td>{m.title}</td>
                   <td>
@@ -66,17 +70,28 @@ export function EventsSection({ meetings, onRefresh, showToast, searchHide }) {
                   </td>
                   <td>
                     {m.join_url ? (
-                      <button type="button" className="ghost" onClick={() => join(m.id)}>
-                        Join
-                      </button>
-                    ) : null}
-                    <input
-                      placeholder="paste link"
-                      defaultValue={m.join_url || ''}
-                      onBlur={e => {
-                        if (e.target.value !== (m.join_url || '')) patch(m.id, { join_url: e.target.value });
-                      }}
-                    />
+                      <div className="event-join-row">
+                        <button type="button" className="ghost" onClick={() => join(m.id)}>
+                          Join
+                        </button>
+                        <button
+                          type="button"
+                          className="event-link-chip"
+                          title={m.join_url}
+                          onClick={() => copyLink(m.join_url)}
+                        >
+                          {formatFieldValue('URL', m.join_url).text}
+                        </button>
+                      </div>
+                    ) : (
+                      <input
+                        placeholder="paste link"
+                        defaultValue=""
+                        onBlur={e => {
+                          if (e.target.value.trim()) patch(m.id, { join_url: e.target.value.trim() });
+                        }}
+                      />
+                    )}
                   </td>
                 </tr>
               ))}
@@ -206,7 +221,7 @@ export function ProgramsSection({
             size={1.15}
             color="#d08726"
             items={topPrograms.map(o => (
-              <span key={o.id}>{o.role || o.company}</span>
+              <span key={o.id}>{programFolderLabel(o)}</span>
             ))}
           />
           <p className="folder-programs__caption">
@@ -228,21 +243,29 @@ export function ProgramsSection({
               </tr>
             </thead>
             <tbody>
-              {opportunities.map(o => (
-                <tr key={o.id}>
+              {opportunities.map(o => {
+                const inferred = inferProgram(o);
+                return (
+                <tr key={`${o.id}-${o.updated_at || ''}`}>
                   <td data-label="Company">
                     <input
-                      defaultValue={o.company || ''}
+                      className={inferred.companyIsInferred ? 'inferred-field' : undefined}
+                      defaultValue={inferred.company}
+                      placeholder="Company"
                       onBlur={e => {
-                        if (e.target.value !== (o.company || '')) patchOpp(o.id, { company: e.target.value });
+                        const next = e.target.value.trim();
+                        if (next !== (o.company || '')) patchOpp(o.id, { company: next || null });
                       }}
                     />
                   </td>
                   <td data-label="Role">
                     <input
-                      defaultValue={o.role || ''}
+                      className={inferred.roleIsInferred ? 'inferred-field' : undefined}
+                      defaultValue={inferred.role}
+                      placeholder="Role"
                       onBlur={e => {
-                        if (e.target.value !== (o.role || '')) patchOpp(o.id, { role: e.target.value });
+                        const next = e.target.value.trim();
+                        if (next !== (o.role || '')) patchOpp(o.id, { role: next || null });
                       }}
                     />
                   </td>
@@ -270,10 +293,11 @@ export function ProgramsSection({
                   <td data-label="Deadline">
                     <input
                       type="date"
-                      defaultValue={(o.deadline_at || '').slice(0, 10)}
+                      className={inferred.deadlineIsInferred ? 'inferred-field' : undefined}
+                      defaultValue={inferred.deadline}
                       onBlur={e => {
                         if (e.target.value !== (o.deadline_at || '').slice(0, 10))
-                          patchOpp(o.id, { deadline_at: e.target.value });
+                          patchOpp(o.id, { deadline_at: e.target.value || null });
                       }}
                     />
                   </td>
@@ -281,13 +305,15 @@ export function ProgramsSection({
                     <input
                       type="url"
                       defaultValue={o.url || ''}
+                      placeholder={o.url?.startsWith('mail:') ? 'From mail' : 'URL'}
                       onBlur={e => {
                         if (e.target.value !== (o.url || '')) patchOpp(o.id, { url: e.target.value });
                       }}
                     />
                   </td>
                 </tr>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         ) : (
@@ -333,19 +359,29 @@ export function ProgramsSection({
   );
 }
 
-export function MailSection({ mail, mailMasonryItems, reduce, searchHide }) {
+export function MailSection({ mail, searchHide }) {
+  const preview = (mail || []).slice(0, 6);
+
   return (
     <section className={`card panel${searchHide ? ' search-hide' : ''}`} id="panel-mail">
       <div className="card-head">
         <h2>Mail</h2>
       </div>
-      <div className="masonry-slot">
-        {mailMasonryItems.length ? (
-          <Masonry items={mailMasonryItems} blurToFocus={!reduce} />
-        ) : (
-          <p className="empty-note">No actionable mail cards.</p>
-        )}
-      </div>
+      {preview.length ? (
+        <div className="mail-card-grid">
+          {preview.map(m => {
+            const label = mailTypeLabel(m);
+            return (
+              <article key={m.id} className="mail-card" data-tone={mailChipTone(label)}>
+                <span className="mail-card__type">{label}</span>
+                <p className="mail-card__subject">{m.subject || 'No subject'}</p>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="empty-note">No actionable mail cards.</p>
+      )}
       {mail?.length ? (
         <table className="grid-table">
           <thead>
@@ -420,6 +456,11 @@ export function ApprovalsSection({ approvals, onRefresh, showToast, searchHide }
     await onRefresh({ force: true });
   };
 
+  const copyApprovalLink = async (url) => {
+    const ok = await copyText(url);
+    showToast(ok ? 'Link copied.' : 'Could not copy link.');
+  };
+
   return (
     <section className={`card panel${searchHide ? ' search-hide' : ''}`} id="panel-approvals">
       <div className="card-head">
@@ -437,14 +478,28 @@ export function ApprovalsSection({ approvals, onRefresh, showToast, searchHide }
                 </div>
                 <div className="approval-body">
                   {f.lines.length ? (
-                    f.lines.map((l, i) => (
+                    f.lines.map((l, i) => {
+                      const display = formatFieldValue(l.label, l.value);
+                      return (
                       <div key={i} className="approval-field">
                         <span className="approval-label">{l.label}</span>
                         <span className="approval-value">
-                          {l.value.length > 220 ? l.value.slice(0, 217) + '…' : l.value}
+                          {display.isUrl ? (
+                            <button
+                              type="button"
+                              className="approval-value-link"
+                              title={l.value}
+                              onClick={() => copyApprovalLink(l.value)}
+                            >
+                              {display.text}
+                            </button>
+                          ) : (
+                            display.text
+                          )}
                         </span>
                       </div>
-                    ))
+                    );
+                    })
                   ) : (
                     <p className="approval-empty">No details.</p>
                   )}

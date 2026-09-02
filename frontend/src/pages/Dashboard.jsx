@@ -27,12 +27,12 @@ import PillNav from '@/components/PillNav';
 import SideRays from '@/components/SideRays';
 import TextType from '@/components/TextType';
 import TrueFocus from '@/components/TrueFocus';
-import { ChatFab } from '@/components/ChatFab';
+import { ChatProvider } from '@/components/ChatSidebar';
 import { useToday } from '@/context/TodayContext';
 import { useBreakpoint, useIsMobile, useReducedMotion, useViewportSize } from '@/hooks/useReducedMotion';
 import { useThemeControls } from '@/hooks/useThemeControls';
 import { api } from '@/lib/api';
-import { heatTile, mailTile, streakGrid } from '@/lib/tiles';
+import { heatTile, streakGrid } from '@/lib/tiles';
 import {
   approvalsSummary,
   eventsSummary,
@@ -162,17 +162,6 @@ export default function Dashboard({ showToast }) {
     [today, heatMax]
   );
 
-  const mailMasonryItems = useMemo(
-    () =>
-      (today?.mail || []).slice(0, 6).map((m, i) => ({
-        id: String(m.id || i),
-        img: mailTile(m),
-        url: '#',
-        height: 190 + (i % 3) * 34,
-      })),
-    [today]
-  );
-
   const topPrograms = (today?.opportunities || []).slice(0, 3);
 
   if (!today && !error) {
@@ -194,6 +183,8 @@ export default function Dashboard({ showToast }) {
   const nm = today ? nextMeeting(today.meetings) : null;
 
   return (
+    <ChatProvider onRefresh={refresh}>
+      {({ openChat }) => (
     <EffectsShell>
       <DashboardBackground />
       <div className="app-shell">
@@ -407,7 +398,7 @@ export default function Dashboard({ showToast }) {
                       <div className="get-started-hero__type"><TextType text={actionTexts[1] || actionTexts[0]} typingSpeed={42} showCursor={false} loop={false} /></div>
                       <div className="os-stage__actions">
                         <button type="button" onClick={() => scrollToHash('#panel-plan')}>Shape today</button>
-                        <button type="button" className="ghost" onClick={() => document.querySelector('.chat-toggle')?.click()}>Ask Timeless</button>
+                        <button type="button" className="ghost" onClick={openChat}>Ask Timeless</button>
                       </div>
                     </div>
                   </div>
@@ -421,7 +412,7 @@ export default function Dashboard({ showToast }) {
                   <div className="install-grid">
                     <CommandBlock title="Lock plan" command="timeless plan lock" onAction={() => scrollToHash('#panel-plan')} actionLabel="Open plan" />
                     <CommandBlock title="Join next" command={nm?.join_url || 'timeless join next'} onAction={async () => { if (nm) { await api(`/api/meetings/${nm.id}/join`, { method: 'POST', body: '{}' }); await refresh({ force: true }); } }} actionLabel="Join" />
-                    <CommandBlock title="Ask Timeless" command='timeless chat "What matters now?"' onAction={() => document.querySelector('.chat-toggle')?.click()} actionLabel="Open chat" />
+                    <CommandBlock title="Ask Timeless" command='timeless chat "What matters now?"' onAction={openChat} actionLabel="Open chat" />
                   </div>
 
                   <GlassJumper
@@ -499,8 +490,6 @@ export default function Dashboard({ showToast }) {
                 <p className="card-lead panel-lead">{mailSummary(today?.mail)}</p>
                 <MailSection
                   mail={today?.mail}
-                  mailMasonryItems={mailMasonryItems}
-                  reduce={reduce}
                   searchHide={panelHidden('panel-mail')}
                 />
 
@@ -596,7 +585,8 @@ export default function Dashboard({ showToast }) {
           </div>
         </div>
       </div>
-      <ChatFab onRefresh={refresh} />
     </EffectsShell>
+      )}
+    </ChatProvider>
   );
 }

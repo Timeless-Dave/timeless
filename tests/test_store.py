@@ -129,6 +129,33 @@ def test_confirmation_requires_approval(store):
     assert store.list_opportunities()[0]["state"] == "applied"
 
 
+def test_early_join_from_30m_reminder_does_not_ack_meeting(store, monkeypatch):
+    monkeypatch.setattr("timeless.hands.run", lambda intent: {"ok": True})
+    start = datetime(2026, 8, 20, 18, 0, tzinfo=timezone.utc)
+    end = datetime(2026, 8, 20, 19, 0, tzinfo=timezone.utc)
+    meeting = store.upsert_meeting(
+        "zoom-early",
+        "Standup",
+        start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        end.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "https://zoom.us/j/early",
+    )
+    at = datetime(2026, 8, 20, 17, 30, tzinfo=timezone.utc)
+    halt = store.active_halt(at)
+    assert halt["halt_kind"] == "reminder"
+    assert halt["purpose"] == "start_30m"
+    assert halt["can_open_link"] is True
+    assert halt["requires_join"] is False
+    store.join_meeting(meeting["id"], reminder_id=halt["id"])
+    row = store.conn.execute("SELECT ack FROM meetings WHERE id=?", (meeting["id"],)).fetchone()
+    assert row["ack"] is None
+    at_start = datetime(2026, 8, 20, 18, 5, tzinfo=timezone.utc)
+    live = store.active_halt(at_start)
+    assert live is not None
+    assert live.get("halt_kind") != "reminder"
+    assert live.get("requires_join") is True
+
+
 def test_shortlisted_state_and_zoom_reminder(store):
     opp = store.upsert_opportunity(url="https://example.com/hack", role="UAPB Hack", kind="hackathon")
     store.set_opportunity_state(opp["id"], "shortlisted")
@@ -247,9 +274,15 @@ def test_meeting_ack_and_miss(store):
     assert row["ack"] == "missed"
 
 
-def test_confirming_day_ahead_reminder_consumes_it_without_headed(store):
-    now = datetime.now(timezone.utc).replace(microsecond=0)
-    start = now + timedelta(days=1) - timedelta(minutes=1)
+def test_confirming_day_ahead_reminder_consumes_it_without_headed(store, monkeypatch):
+    from timeless.clock import zone
+
+    z = zone()
+    start_local = datetime(2027, 8, 25, 15, 0, tzinfo=z)
+    now_local = datetime(2027, 8, 24, 10, 0, tzinfo=z)
+    start = start_local.astimezone(timezone.utc)
+    now = now_local.astimezone(timezone.utc)
+    monkeypatch.setattr("timeless.store._now", lambda: now)
     meeting = store.upsert_meeting(
         "physical-tomorrow",
         "Campus meeting",

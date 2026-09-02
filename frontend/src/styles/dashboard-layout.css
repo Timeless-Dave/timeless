@@ -384,8 +384,7 @@ select {
 
 .pop-wrap { position: relative; z-index: 20; }
 
-.pop,
-.chat-panel {
+.pop {
   position: absolute;
   right: 0;
   z-index: 60;

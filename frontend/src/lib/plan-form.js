@@ -7,8 +7,8 @@ export function newGoalId() {
 
 export function goalsFromOutcomes(outcomes) {
   const lines = String(outcomes || '')
-    .split('\n')
-    .map(s => s.trim())
+    .split(/\n|;/)
+    .map(s => s.replace(/^\s*(?:[-•]|\d+[.)])\s*/, '').trim())
     .filter(Boolean);
   if (!lines.length) return [{ id: newGoalId(), text: '' }];
   return lines.map(text => ({ id: newGoalId(), text }));

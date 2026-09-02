@@ -72,8 +72,9 @@ export function mailLabel(classification) {
 }
 
 const SUBJECT_PATTERNS = [
-  [/security alert/i, 'Security alert'],
-  [/password/i, 'Password reset'],
+  [/^security alert\b/i, 'Security alert'],
+  [/^google:?\s*security/i, 'Security alert'],
+  [/password reset|reset your password/i, 'Password reset'],
   [/verify|verification|confirm your/i, 'Verification'],
   [/new (sign-?in|app|device)/i, 'Account activity'],
   [/\bsale\b|% off|deal|discount/i, 'Promotion'],

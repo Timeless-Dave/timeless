@@ -1,6 +1,7 @@
 @import '@/styles/dashboard.css';
 @import '@/styles/dashboard-responsive.css';
 @import '@/styles/plan-editor.css';
+@import '@/styles/recap-overlay.css';
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";

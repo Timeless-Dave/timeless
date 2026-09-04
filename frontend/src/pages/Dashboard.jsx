@@ -555,13 +555,14 @@ export default function Dashboard({ showToast }) {
                       <div className="spiral-slot">
                         <InfiniteSpiral
                           items={heatSpiralItems}
-                          animationMode="none"
-                          speed={0.3}
+                          animationMode={reduce ? 'none' : 'auto'}
+                          speed={0.22}
                           radius={92}
                           cardWidth={68}
                           cardHeight={68}
                           verticalSpacing={48}
                           cardsPerTurn={heatSpiralItems.length || 7}
+                          pauseOnHover
                         />
                       </div>
                     </>

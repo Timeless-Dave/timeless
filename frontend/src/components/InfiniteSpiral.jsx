@@ -133,7 +133,7 @@ const InfiniteSpiral = ({
         card.style.pointerEvents = opacity > 0.25 ? 'auto' : 'none';
       });
 
-      if (animationMode !== 'none' && !document.hidden) frameId = requestAnimationFrame(render);
+      if (!document.hidden) frameId = requestAnimationFrame(render);
     };
 
     frameId = requestAnimationFrame(render);

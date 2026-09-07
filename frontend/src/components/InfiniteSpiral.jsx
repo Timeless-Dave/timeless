@@ -40,6 +40,7 @@ const InfiniteSpiral = ({
   const draggingRef = useRef(false);
   const lastPointerYRef = useRef(0);
   const dragMovedRef = useRef(false);
+  const isStatic = animationMode === 'none';
 
   const normalizedItems = useMemo(() =>
     items.map((item, index) =>
@@ -59,8 +60,46 @@ const InfiniteSpiral = ({
     const scrollSpeedMultiplier = Math.max(speed, 0) / 0.55;
     let lastScrollY = window.scrollY;
 
+    const layoutCards = () => {
+      const count = normalizedItems.length;
+      const half = count / 2;
+      const width = Math.max(bounds.width, 1);
+      const height = Math.max(bounds.height, 1);
+      const fit = Math.min(1, width / (cardWidth * 2.8), height / (cardHeight * 2.35));
+      const responsiveRadius = Math.min(radius, Math.max(72, width * 0.36)) * fit;
+      const fadeStart = clamp(1 - edgeFade, 0, 0.98);
+      const turnSize = Math.max(cardsPerTurn, 1);
+      const progress = progressRef.current;
+
+      cardRefs.current.forEach((card, index) => {
+        if (!card) return;
+        let offset = index - progress;
+        offset = modulo(offset + half, count) - half;
+
+        const edge = Math.min(Math.abs(offset) / Math.max(half, 1), 1);
+        const opacity = 1 - smoothstep(fadeStart, 1, edge);
+        const focus = 1 - Math.min(Math.abs(offset) / Math.max(turnSize * 0.65, 1), 1);
+        const scale = (1 + (centerScale - 1) * focus) * fit;
+        const angle = offset * (360 / turnSize) + rotation;
+        const angleRadians = (angle * Math.PI) / 180;
+        const x = Math.sin(angleRadians) * responsiveRadius;
+        const z = Math.cos(angleRadians) * responsiveRadius;
+        const depthScale = clamp(perspective / Math.max(perspective - z, 1), 0.72, 1.45);
+        const visualScale = scale * depthScale;
+        const depth = (z / Math.max(responsiveRadius, 1) + 1) / 2;
+        const blur = isStatic ? 0 : edgeBlur * smoothstep(0.35, 1, edge);
+        card.style.transform = `translate(-50%, -50%) translate3d(${x}px, ${offset * verticalSpacing * fit}px, 0) rotateZ(${cardTilt}deg) scale(${visualScale})`;
+        card.style.opacity = opacity.toFixed(3);
+        card.style.filter = blur > 0.01 ? `blur(${blur.toFixed(2)}px)` : 'none';
+        card.style.zIndex = String(Math.round(depth * 100000) + index);
+        card.style.pointerEvents = opacity > 0.25 ? 'auto' : 'none';
+        if (isStatic) card.style.willChange = 'auto';
+      });
+    };
+
     const resizeObserver = new ResizeObserver(() => {
       bounds = root.getBoundingClientRect();
+      if (isStatic) layoutCards();
     });
     resizeObserver.observe(root);
 
@@ -70,6 +109,7 @@ const InfiniteSpiral = ({
     intersectionObserver.observe(root);
 
     const handleScroll = () => {
+      if (isStatic) return;
       const nextScrollY = window.scrollY;
       const scrollDelta = nextScrollY - lastScrollY;
       lastScrollY = nextScrollY;
@@ -81,6 +121,15 @@ const InfiniteSpiral = ({
       );
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
+
+    if (isStatic) {
+      layoutCards();
+      return () => {
+        resizeObserver.disconnect();
+        intersectionObserver.disconnect();
+        window.removeEventListener('scroll', handleScroll);
+      };
+    }
 
     const render = time => {
       const delta = Math.min((time - previousTime) / 1000, 0.05);
@@ -100,38 +149,7 @@ const InfiniteSpiral = ({
       const followBlend = 1 - Math.exp(-delta * (draggingRef.current ? 22 : 11));
       progressRef.current += (targetProgressRef.current - progressRef.current) * followBlend;
 
-      const count = normalizedItems.length;
-      const half = count / 2;
-      const width = Math.max(bounds.width, 1);
-      const height = Math.max(bounds.height, 1);
-      const fit = Math.min(1, width / (cardWidth * 2.8), height / (cardHeight * 2.35));
-      const responsiveRadius = Math.min(radius, Math.max(72, width * 0.36)) * fit;
-      const fadeStart = clamp(1 - edgeFade, 0, 0.98);
-      const turnSize = Math.max(cardsPerTurn, 1);
-
-      cardRefs.current.forEach((card, index) => {
-        if (!card) return;
-        let offset = index - progressRef.current;
-        offset = modulo(offset + half, count) - half;
-
-        const edge = Math.min(Math.abs(offset) / Math.max(half, 1), 1);
-        const opacity = 1 - smoothstep(fadeStart, 1, edge);
-        const focus = 1 - Math.min(Math.abs(offset) / Math.max(turnSize * 0.65, 1), 1);
-        const scale = (1 + (centerScale - 1) * focus) * fit;
-        const angle = offset * (360 / turnSize) + rotation;
-        const angleRadians = (angle * Math.PI) / 180;
-        const x = Math.sin(angleRadians) * responsiveRadius;
-        const z = Math.cos(angleRadians) * responsiveRadius;
-        const depthScale = clamp(perspective / Math.max(perspective - z, 1), 0.72, 1.45);
-        const visualScale = scale * depthScale;
-        const depth = (z / Math.max(responsiveRadius, 1) + 1) / 2;
-        const blur = edgeBlur * smoothstep(0.35, 1, edge);
-        card.style.transform = `translate(-50%, -50%) translate3d(${x}px, ${offset * verticalSpacing * fit}px, 0) rotateZ(${cardTilt}deg) scale(${visualScale})`;
-        card.style.opacity = opacity.toFixed(3);
-        card.style.filter = blur > 0.01 ? `blur(${blur.toFixed(2)}px)` : 'none';
-        card.style.zIndex = String(Math.round(depth * 100000) + index);
-        card.style.pointerEvents = opacity > 0.25 ? 'auto' : 'none';
-      });
+      layoutCards();
 
       if (!document.hidden) frameId = requestAnimationFrame(render);
     };
@@ -149,6 +167,7 @@ const InfiniteSpiral = ({
     speed,
     direction,
     animationMode,
+    isStatic,
     radius,
     perspective,
     cardWidth,
@@ -187,7 +206,7 @@ const InfiniteSpiral = ({
   return (
     <div
       ref={rootRef}
-      className={`infinite-spiral ${className}`.trim()}
+      className={`infinite-spiral${isStatic ? ' infinite-spiral--static' : ''} ${className}`.trim()}
       style={rootStyle}
       onMouseEnter={() => {
         hoveredRef.current = true;

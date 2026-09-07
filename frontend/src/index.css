@@ -106,7 +106,7 @@ body {
 }
 
 *:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--focus-ring, var(--accent)) 72%, var(--ink));
   outline-offset: 3px;
 }
 

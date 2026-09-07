@@ -31,6 +31,7 @@ export default function PlanEditor({
   const [blocks, setBlocks] = useState(() => blocksFromPlan(plan, goalsFromPlan(plan)));
   const [removed, setRemoved] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [archiveRefreshKey, setArchiveRefreshKey] = useState(0);
   const [serverError, setServerError] = useState('');
   const loadedDay = useRef('');
   const draft = usePlanDraft(planDay, plan?.updated_at);
@@ -164,6 +165,7 @@ export default function PlanEditor({
       });
       draft.clear();
       setRemoved(null);
+      setArchiveRefreshKey(key => key + 1);
       showToast?.('Plan saved.', 'mint');
       await onSaved?.();
     } catch (err) {
@@ -313,7 +315,7 @@ export default function PlanEditor({
       <ArchivedGoals
         key={planDay}
         day={planDay}
-        refreshToken={plan?.updated_at}
+        refreshToken={archiveRefreshKey}
         onRestored={onSaved}
         showToast={showToast}
       />

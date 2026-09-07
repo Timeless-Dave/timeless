@@ -121,6 +121,12 @@ function ChatSidebarUI() {
   const [draft, setDraft] = useState('');
   const logRef = useRef(null);
   const inputRef = useRef(null);
+  const toggleRef = useRef(null);
+
+  const dismiss = useCallback(() => {
+    closeChat();
+    requestAnimationFrame(() => toggleRef.current?.focus());
+  }, [closeChat]);
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -134,11 +140,11 @@ function ChatSidebarUI() {
 
   useEffect(() => {
     const onKey = e => {
-      if (e.key === 'Escape' && open) closeChat();
+      if (e.key === 'Escape' && open) dismiss();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, closeChat]);
+  }, [open, dismiss]);
 
   const submit = () => {
     if (!draft.trim()) return;
@@ -149,18 +155,20 @@ function ChatSidebarUI() {
   return (
     <>
       <button
+        ref={toggleRef}
         type="button"
         className={`chat-sidebar-toggle${open ? ' chat-sidebar-toggle--open' : ''}`}
         onClick={toggleChat}
         aria-label={open ? 'Close chat' : 'Open chat'}
         aria-expanded={open}
+        aria-controls="timeless-chat"
       >
         {open ? <X size={26} weight="bold" /> : <ChatCircleDots size={28} weight="fill" />}
       </button>
 
       <div
         className={`chat-sidebar-backdrop${open ? ' open' : ''}`}
-        onClick={closeChat}
+        onClick={dismiss}
         aria-hidden={!open}
       />
 
@@ -169,6 +177,7 @@ function ChatSidebarUI() {
         id="timeless-chat"
         aria-label="Timeless chat"
         aria-hidden={!open}
+        inert={!open || undefined}
       >
         <header className="chat-sidebar__head">
           <div>
@@ -182,7 +191,7 @@ function ChatSidebarUI() {
             <button
               type="button"
               className="ghost small-btn chat-sidebar__close"
-              onClick={closeChat}
+              onClick={dismiss}
               aria-label="Collapse chat"
             >
               <CaretRight size={18} weight="bold" aria-hidden />

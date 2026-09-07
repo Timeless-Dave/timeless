@@ -24,6 +24,8 @@
 
 @media (max-width: 768px) {
   .pill-nav {
+    --nav-h: 44px;
+    --logo: 44px;
     width: 100%;
     justify-content: space-between;
     padding: 0 1rem;

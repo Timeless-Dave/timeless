@@ -192,6 +192,6 @@
   }
 
   .chat-sidebar-toggle {
-    bottom: calc(5.75rem + env(safe-area-inset-bottom));
+    bottom: calc(6rem + env(safe-area-inset-bottom));
   }
 }

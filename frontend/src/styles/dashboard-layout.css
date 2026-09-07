@@ -648,7 +648,18 @@ a.approval-kind:hover {
   .shell-content { border-radius: 16px; }
   .page-wrap { overflow: visible; }
   .page-body { display: block; overflow: visible; }
-  .main-col { padding: 0 1rem 6.5rem; overflow: visible; }
+  .main-col { padding: 0 1rem calc(7.5rem + env(safe-area-inset-bottom)); overflow: visible; }
+  #panel-plan.panel--sheet-open {
+    position: fixed;
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: calc(5.75rem + env(safe-area-inset-bottom));
+    z-index: 130;
+    max-height: min(78dvh, 720px);
+    overflow: auto;
+    margin: 0;
+    box-shadow: 0 -12px 48px rgba(61, 50, 36, 0.22);
+  }
   .dark-panel { display: none; min-height: 0; overflow: hidden; }
   .dark-panel--open { display: block; min-height: 420px; }
   .day-summary { margin: 0.5rem 0 0.75rem; }

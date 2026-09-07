@@ -8,6 +8,7 @@ import InfiniteSpiral from '@/components/InfiniteSpiral';
 import NowPanel from '@/components/NowPanel';
 import PlanEditor from '@/components/PlanEditor';
 import PillNav from '@/components/PillNav';
+import RadioGroup from '@/components/RadioGroup';
 import SideRays from '@/components/SideRays';
 import { ChatProvider } from '@/components/ChatSidebar';
 import { useToday } from '@/context/today-context';
@@ -56,6 +57,7 @@ export default function Dashboard({ showToast }) {
   const [planOpen, setPlanOpen] = useState(false);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [rhythmOpen, setRhythmOpen] = useState(false);
+  const [opsOpen, setOpsOpen] = useState(false);
   const planRequest = useRef(0);
 
   const isMobile = breakpoint === 'mobile';
@@ -276,32 +278,20 @@ export default function Dashboard({ showToast }) {
                   <div id="pop-focus" className={`pop${focusOpen ? ' open' : ''}`} hidden={!focusOpen}>
                     <p className="pop__title">Start a focus session</p>
                     <p className="pop__help">Quiet mutes nudges, mild lets urgent ones through, dormant silences everything.</p>
-                    <span className="pop__label">Duration</span>
-                    <div className="choice-row">
-                      {[30, 60, 90].map(m => (
-                        <button
-                          key={m}
-                          type="button"
-                          className={`ghost${focusMin === m ? ' on' : ''}`}
-                          onClick={() => setFocusMin(m)}
-                        >
-                          {m}m
-                        </button>
-                      ))}
-                    </div>
-                    <span className="pop__label">Quiet level</span>
-                    <div className="choice-row">
-                      {['quiet', 'mild', 'dormant'].map(l => (
-                        <button
-                          key={l}
-                          type="button"
-                          className={`ghost${focusLevel === l ? ' on' : ''}`}
-                          onClick={() => setFocusLevel(l)}
-                        >
-                          {l}
-                        </button>
-                      ))}
-                    </div>
+                    <p className="pop__title" id="focus-duration-label">Duration</p>
+                    <RadioGroup
+                      labelId="focus-duration-label"
+                      options={[['30', '30m'], ['60', '60m'], ['90', '90m']]}
+                      value={String(focusMin)}
+                      onChange={value => setFocusMin(parseInt(value, 10))}
+                    />
+                    <p className="pop__title" id="focus-level-label">Quiet level</p>
+                    <RadioGroup
+                      labelId="focus-level-label"
+                      options={[['quiet', 'quiet'], ['mild', 'mild'], ['dormant', 'dormant']]}
+                      value={focusLevel}
+                      onChange={setFocusLevel}
+                    />
                     <button
                       type="button"
                       className="pop__primary"
@@ -342,24 +332,12 @@ export default function Dashboard({ showToast }) {
                     <p className="pop__title" id="effects-mode-label">
                       Visual effects
                     </p>
-                    <div className="choice-row" role="radiogroup" aria-labelledby="effects-mode-label">
-                      {[
-                        ['auto', 'Auto'],
-                        ['full', 'Full'],
-                        ['quiet', 'Quiet'],
-                      ].map(([value, label]) => (
-                        <button
-                          key={value}
-                          type="button"
-                          role="radio"
-                          aria-checked={gpu.mode === value}
-                          className={`ghost${gpu.mode === value ? ' on' : ''}`}
-                          onClick={() => setEffectsMode(value)}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                    <RadioGroup
+                      labelId="effects-mode-label"
+                      options={[['auto', 'Auto'], ['full', 'Full'], ['quiet', 'Quiet']]}
+                      value={gpu.mode}
+                      onChange={setEffectsMode}
+                    />
                     <p className="pop__help">
                       {gpu.reason ||
                         'Effects are running. Auto turns them down on battery, with data saver, or when frames start dropping.'}
@@ -504,7 +482,10 @@ export default function Dashboard({ showToast }) {
                   </section>
                 ) : null}
 
-                <section className="card panel" id="panel-plan">
+                <section
+                  className={`card panel${isMobile && planOpen ? ' panel--sheet-open' : ''}`}
+                  id="panel-plan"
+                >
                   {isMobile ? (
                     <button
                       type="button"
@@ -549,18 +530,47 @@ export default function Dashboard({ showToast }) {
                   </div>
                 </section>
 
-                <section className="ops-link card" aria-labelledby="ops-link-title">
-                  <h2 id="ops-link-title">Operations</h2>
-                  <p className="card-lead">
-                    {eventsSummary(today?.meetings)} · {approvalsSummary(today?.approvals)}
-                  </p>
-                  <p className="card-lead">
-                    {programSummary(today?.opportunities)} · {mailSummary(today?.mail)}
-                  </p>
-                  <Link className="button-link" to="/ops">
-                    Open operations
-                  </Link>
-                </section>
+                {isMobile ? (
+                  <section className="ops-link card" aria-labelledby="ops-link-title">
+                    <button
+                      type="button"
+                      className="panel-disclosure__trigger"
+                      aria-expanded={opsOpen}
+                      aria-controls="ops-link-body"
+                      onClick={() => setOpsOpen(open => !open)}
+                    >
+                      <span>Operations</span>
+                      <span className="panel-disclosure__meta">
+                        {eventsSummary(today?.meetings)} · {approvalsSummary(today?.approvals)}
+                      </span>
+                    </button>
+                    <div id="ops-link-body" hidden={!opsOpen}>
+                      <h2 id="ops-link-title" className="visually-hidden">Operations</h2>
+                      <p className="card-lead">
+                        {eventsSummary(today?.meetings)} · {approvalsSummary(today?.approvals)}
+                      </p>
+                      <p className="card-lead">
+                        {programSummary(today?.opportunities)} · {mailSummary(today?.mail)}
+                      </p>
+                      <Link className="button-link" to="/ops">
+                        Open operations
+                      </Link>
+                    </div>
+                  </section>
+                ) : (
+                  <section className="ops-link card" aria-labelledby="ops-link-title">
+                    <h2 id="ops-link-title">Operations</h2>
+                    <p className="card-lead">
+                      {eventsSummary(today?.meetings)} · {approvalsSummary(today?.approvals)}
+                    </p>
+                    <p className="card-lead">
+                      {programSummary(today?.opportunities)} · {mailSummary(today?.mail)}
+                    </p>
+                    <Link className="button-link" to="/ops">
+                      Open operations
+                    </Link>
+                  </section>
+                )}
 
                 <section className="analytics-disclosure" id="panel-analytics">
                   <button

@@ -131,13 +131,25 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* Decorative motion only — keep short UI feedback on buttons and menus. */
+  .side-rays-slot,
+  .spiral-slot,
+  .streak-slot,
+  .get-started-hero canvas,
+  .lightfall-container canvas,
+  .effects-shell__bg canvas,
+  .infinite-spiral__track {
+    animation: none !important;
+  }
+
+  .infinite-spiral__item,
+  .pop,
+  .chat-sidebar-toggle {
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }
 

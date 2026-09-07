@@ -161,10 +161,10 @@ test.describe('acceptance flows', () => {
     await page.goto('/');
     // The app routes on load; wait until it has settled on the dashboard.
     await expect(page.locator('#now')).toBeVisible();
-    const planTrigger = page.locator('#panel-plan').getByRole('button', { name: 'Plan', exact: true });
+    const planTrigger = page.locator('#panel-plan').getByRole('button', { name: /^Plan\b/ });
     if (await planTrigger.isVisible()) await planTrigger.click();
     const editor = page.locator('.plan-editor');
-    await editor.scrollIntoViewIfNeeded();
+    await expect(editor).toBeVisible();
 
     await editor.getByRole('button', { name: 'Remove goal 1' }).click();
     await expect(editor.getByText(/Its history is kept/)).toBeVisible();

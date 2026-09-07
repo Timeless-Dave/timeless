@@ -80,7 +80,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: var(--accent);
+  color: var(--accent-readable, var(--accent));
   margin: 0 0 0.5rem;
 }
 

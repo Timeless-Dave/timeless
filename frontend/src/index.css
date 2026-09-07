@@ -61,8 +61,12 @@
   --body: #383838;
   --muted: #6a6969;
   --line: #e8e7e7;
+  /* Brand accent: decorative fills and large UI chrome. */
   --accent: #d08726;
   --accent-rgb: 208, 135, 38;
+  /* Contrast-safe variants derived in theme.js when the user picks an accent. */
+  --accent-readable: #383838;
+  --focus-ring: #383838;
   --ink-on-dark: #ffffff;
   --muted-on-dark: #cacaca;
   --danger: #e95d5c;
@@ -89,7 +93,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: var(--focus-ring);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);

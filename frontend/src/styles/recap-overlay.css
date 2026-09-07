@@ -226,7 +226,7 @@
   align-self: center;
   font-size: 12px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-readable, var(--accent));
 }
 
 .recap-caveat {

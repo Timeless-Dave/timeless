@@ -346,6 +346,9 @@ export default function Dashboard({ showToast }) {
                         : ''}
                     </p>
                     <p className="pop__title">Accent color</p>
+                    <p className="pop__help">
+                      Accent tints fills and chips. Text and focus rings stay contrast-safe automatically.
+                    </p>
                     <div className="pop__swatch-row">
                       <span className="pop__swatch" style={{ background: theme.hex }} />
                       <span className="pop__value">{theme.hex}</span>

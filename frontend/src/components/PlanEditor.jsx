@@ -311,8 +311,9 @@ export default function PlanEditor({
       </div>
 
       <ArchivedGoals
-        key={`${planDay}-${plan?.updated_at || ''}`}
+        key={planDay}
         day={planDay}
+        refreshToken={plan?.updated_at}
         onRestored={onSaved}
         showToast={showToast}
       />

@@ -390,8 +390,9 @@ export default function RecapPage({ showToast }) {
               {blocked ? (
                 <div className="recap-block" role="status">
                   <p>
-                    {unjudged.length} goal{unjudged.length === 1 ? '' : 's'} still need an outcome. The day
-                    cannot close on an unanswered record.
+                    {unjudged.length} goal{unjudged.length === 1 ? '' : 's'} still{' '}
+                    {unjudged.length === 1 ? 'needs' : 'need'} an outcome. The day cannot close on an
+                    unanswered record.
                   </p>
                   <div className="row">
                     <button

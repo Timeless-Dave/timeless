@@ -64,7 +64,36 @@ export default function NowPanel({ today, plan, onRefresh, showToast, onOpenPlan
   const day = today?.day;
   const isWorkingOnFocus = !!work.running_block && work.goal?.id === focus?.id;
 
+  /** Goal, block and focus are set in one move so they cannot drift apart.
+   * An existing focus session follows the work rather than being re-requested. */
+  const startWork = async (goal, { focusMinutes } = {}) => {
+    setBusyWork(true);
+    try {
+      await api('/api/work/start', {
+        method: 'POST',
+        body: JSON.stringify({
+          day,
+          goal_id: goal?.id ?? undefined,
+          focus_minutes: focusMinutes,
+        }),
+      });
+      await onRefresh?.({ force: true });
+      showToast?.(`Working on “${goal.text}”.`, 'mint');
+    } catch (err) {
+      showToast?.(err.message);
+    } finally {
+      setBusyWork(false);
+    }
+  };
+
   const setStatus = async (goal, action) => {
+    // Making a goal active is an execution change, not just a status change:
+    // routing it through the same reconciliation as "Start work" is what stops
+    // another goal's block from carrying on underneath it.
+    if (action.status === 'active') {
+      await startWork(goal);
+      return;
+    }
     let note = action.note;
     if (action.needsNote) {
       note = await ask({
@@ -103,28 +132,6 @@ export default function NowPanel({ today, plan, onRefresh, showToast, onOpenPlan
       showToast?.(err.message);
     } finally {
       setBusyBlock(null);
-    }
-  };
-
-  /** Goal, block and focus are set in one move so they cannot drift apart.
-   * An existing focus session follows the work rather than being re-requested. */
-  const startWork = async (goal, { focusMinutes } = {}) => {
-    setBusyWork(true);
-    try {
-      await api('/api/work/start', {
-        method: 'POST',
-        body: JSON.stringify({
-          day,
-          goal_id: goal?.id ?? undefined,
-          focus_minutes: focusMinutes,
-        }),
-      });
-      await onRefresh?.({ force: true });
-      showToast?.(`Working on “${goal.text}”.`, 'mint');
-    } catch (err) {
-      showToast?.(err.message);
-    } finally {
-      setBusyWork(false);
     }
   };
 

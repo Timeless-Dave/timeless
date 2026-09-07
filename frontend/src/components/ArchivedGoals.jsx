@@ -7,7 +7,7 @@ import { deferredLabel, statusLabel, statusTone } from '@/lib/goals';
  * promises their history is kept; this is where it can actually be retrieved
  * once the immediate Undo is gone.
  */
-export default function ArchivedGoals({ day, onRestored, showToast }) {
+export default function ArchivedGoals({ day, refreshToken, onRestored, showToast }) {
   const [goals, setGoals] = useState([]);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(null);
@@ -37,7 +37,9 @@ export default function ArchivedGoals({ day, onRestored, showToast }) {
     return () => {
       request.current += 1;
     };
-  }, [load]);
+    // `refreshToken` changes when the plan is saved, so the list refetches
+    // without remounting — remounting collapsed the panel under the reader.
+  }, [load, refreshToken]);
 
   const restore = async goal => {
     setBusy(goal.id);

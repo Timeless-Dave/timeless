@@ -436,24 +436,28 @@
   z-index: 60;
 }
 
-/* Touch targets: the project requires 44px, and the small controls were short. */
+/* Touch targets. The project requires 44px; this was previously applied to a
+   list of known-small controls, which missed the Now panel's primary action —
+   a browser test on a phone viewport measured it at 35.6px. Stated once, for
+   every control, on any device that is actually touched. */
+@media (pointer: coarse) {
+  button,
+  select,
+  input:not([type='range']),
+  .button-link,
+  .preset-chip,
+  .menu-item {
+    min-height: 44px;
+  }
+}
+
+/* On a pointer device the same controls only need to be comfortable. */
 .small-btn,
-.goal-row__remove,
-.block-row__remove,
 .preset-chip,
 .now-goal__actions button,
 .recap-goal__actions button,
 .recap-evidence__buckets button {
-  min-height: 44px;
-}
-
-@media (pointer: fine) {
-  /* A mouse does not need the full touch target on dense rows. */
-  .goal-row__remove,
-  .block-row__remove,
-  .recap-evidence__buckets button {
-    min-height: 32px;
-  }
+  min-height: 32px;
 }
 
 /* One reconciled work state: disagreements are surfaced with their fix. */

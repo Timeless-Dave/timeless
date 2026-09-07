@@ -25,6 +25,13 @@
   font-display: swap;
 }
 
+/* An author `display` beats the UA rule for [hidden], so a hidden element keeps
+   its box and, when positioned, keeps swallowing clicks. Found by a browser
+   test: a closed menu was intercepting presses on the controls beneath it. */
+[hidden] {
+  display: none !important;
+}
+
 :root {
   --bg: #fffcf8;
   --card: #ffffff;

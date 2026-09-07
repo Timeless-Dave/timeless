@@ -37,7 +37,13 @@ final class OverlayController: NSObject, NSApplicationDelegate, WKNavigationDele
         web = WKWebView(frame: screen, configuration: config)
         web.autoresizingMask = [.width, .height]
         web.navigationDelegate = self
-        web.setValue(false, forKey: "drawsBackground")
+        // drawsBackground=false leaves a blank white layer on some macOS builds before
+        // the SPA paints; keep the window's dark plate visible underneath instead.
+        if #available(macOS 12.0, *) {
+            web.underPageBackgroundColor = window.backgroundColor
+        }
+        web.wantsLayer = true
+        web.layer?.backgroundColor = window.backgroundColor?.cgColor
         window.contentView = web
         window.orderOut(nil)
 
@@ -45,6 +51,21 @@ final class OverlayController: NSObject, NSApplicationDelegate, WKNavigationDele
         timer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             self?.poll()
         }
+    }
+
+    func retryCurrentPage() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self, !self.currentPath.isEmpty else { return }
+            self.showPage(self.currentPath)
+        }
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        retryCurrentPage()
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        retryCurrentPage()
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

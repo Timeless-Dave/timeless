@@ -15,6 +15,25 @@
   font: 600 1rem/1.4 'Mulish', ui-sans-serif, system-ui, sans-serif;
 }
 
+.overlay-page {
+  background: var(--canvas);
+}
+
+.overlay-bg {
+  overflow: hidden;
+}
+
+.overlay-bg .lightfall-container {
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .pill-nav-slot .pill-nav {
+    --nav-h: 44px;
+    --logo: 44px;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @font-face {

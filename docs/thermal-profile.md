@@ -8,6 +8,21 @@ signal, and a GPU can hold 60fps while drawing serious power.
 This is the protocol that would settle it. It needs a real browser on the real
 machine, so it has to be run by hand.
 
+**Automation helpers** (repo root):
+
+```bash
+# One mode: opens Chromium on the dashboard + samples SMC every 60s for 10 min
+./scripts/thermal-profile.sh quiet   # also: auto, full, baseline
+
+# Full protocol (3 runs + cooldown between)
+./scripts/thermal-session.sh
+
+# Browser only (from frontend/)
+pnpm exec node scripts/thermal-browser.mjs quiet 10
+```
+
+Logs land in `docs/thermal-runs/`. `powermetrics` requires `sudo`.
+
 ## Setup
 
 1. Quit everything else. Close other browser windows and other apps; a single

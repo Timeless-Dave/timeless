@@ -73,3 +73,44 @@ def test_activity_samples_dedupe_and_score_against_daily_plan(tmp_path):
     assert result["minutes"]["aligned"] == 15
     assert result["score"] == 100
     store.close()
+
+
+def test_summary_publishes_the_score_denominator_and_confidence():
+    plan = {"outcomes": "Study algorithms", "timeline": [{"task": "LeetCode"}]}
+    result = productivity_summary(
+        [
+            sample("study", "productive", 25, "LeetCode algorithms"),
+            sample("other", "neutral", 5, "Unknown activity"),
+        ],
+        plan,
+    )
+    # The score judges 25 minutes, not the 30 that were tracked.
+    assert result["tracked_minutes"] == 30
+    assert result["judged_minutes"] == 25
+    assert result["unknown_share"] == round(5 / 30, 3)
+    assert result["confidence"] == "medium"
+    assert result["estimated"] is True
+
+
+def test_confidence_drops_when_evidence_is_thin_or_mostly_unclassified():
+    plan = {"outcomes": "Study algorithms", "timeline": [{"task": "LeetCode"}]}
+    thin = productivity_summary([sample("study", "productive", 10, "LeetCode")], plan)
+    assert thin["confidence"] == "low"
+
+    murky = productivity_summary(
+        [sample("study", "productive", 60, "LeetCode"), sample("other", "neutral", 90, "Unknown")],
+        plan,
+    )
+    assert murky["confidence"] == "low"
+
+    unplanned = productivity_summary([sample("study", "productive", 200, "LeetCode")], None)
+    assert unplanned["confidence"] == "low"
+
+
+def test_summary_reports_when_the_last_sample_landed():
+    rows = [
+        {**sample("study", "productive", 10, "LeetCode"), "ts": "2026-08-30T15:00:00Z"},
+        {**sample("study", "productive", 10, "LeetCode"), "ts": "2026-08-30T16:00:00Z"},
+    ]
+    assert productivity_summary(rows, None)["last_sample_at"] == "2026-08-30T16:00:00Z"
+    assert productivity_summary([], None)["last_sample_at"] is None

@@ -1,0 +1,4 @@
+# esbuild ships a prebuilt binary; its postinstall only links it into place.
+# Declared explicitly so `pnpm install` is not interactive in CI or on a fresh clone.
+allowBuilds:
+  esbuild: true

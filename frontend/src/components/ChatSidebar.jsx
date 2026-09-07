@@ -1,11 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChatCircleDots, CaretRight, PaperPlaneRight, X } from '@phosphor-icons/react';
+import { ChatContext, useChatPanel } from '@/components/chat-context';
 import { api } from '@/lib/api';
 import '@/styles/chat-sidebar.css';
 
 const CHAT_KEY = 'timeless_chat';
-
-const ChatContext = createContext(null);
 
 const HINTS = [
   'What matters now?',
@@ -103,27 +102,31 @@ export function ChatProvider({ onRefresh, children }) {
   const closeChat = useCallback(() => setOpen(false), []);
   const toggleChat = useCallback(() => setOpen(v => !v), []);
 
-  const value = { open, setOpen, openChat, closeChat, toggleChat, thread, send, clear, busy };
+  const value = useMemo(
+    () => ({ open, setOpen, openChat, closeChat, toggleChat, thread, send, clear, busy }),
+    [open, openChat, closeChat, toggleChat, thread, send, clear, busy]
+  );
 
   return (
     <ChatContext.Provider value={value}>
-      {typeof children === 'function' ? children(value) : children}
+      {children}
       <ChatSidebarUI />
     </ChatContext.Provider>
   );
 }
 
-export function useChatPanel() {
-  const ctx = useContext(ChatContext);
-  if (!ctx) throw new Error('useChatPanel must be used within ChatProvider');
-  return ctx;
-}
 
 function ChatSidebarUI() {
   const { open, toggleChat, closeChat, thread, send, clear, busy } = useChatPanel();
   const [draft, setDraft] = useState('');
   const logRef = useRef(null);
   const inputRef = useRef(null);
+  const toggleRef = useRef(null);
+
+  const dismiss = useCallback(() => {
+    closeChat();
+    requestAnimationFrame(() => toggleRef.current?.focus());
+  }, [closeChat]);
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -137,11 +140,11 @@ function ChatSidebarUI() {
 
   useEffect(() => {
     const onKey = e => {
-      if (e.key === 'Escape' && open) closeChat();
+      if (e.key === 'Escape' && open) dismiss();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, closeChat]);
+  }, [open, dismiss]);
 
   const submit = () => {
     if (!draft.trim()) return;
@@ -152,27 +155,30 @@ function ChatSidebarUI() {
   return (
     <>
       <button
+        ref={toggleRef}
         type="button"
         className={`chat-sidebar-toggle${open ? ' chat-sidebar-toggle--open' : ''}`}
         onClick={toggleChat}
         aria-label={open ? 'Close chat' : 'Open chat'}
         aria-expanded={open}
+        aria-controls="timeless-chat"
       >
         {open ? <X size={26} weight="bold" /> : <ChatCircleDots size={28} weight="fill" />}
       </button>
 
-      <div
-        className={`chat-sidebar-backdrop${open ? ' open' : ''}`}
-        onClick={closeChat}
-        aria-hidden={!open}
-      />
+      {open ? (
+        <>
+          <div
+            className="chat-sidebar-backdrop open"
+            onClick={dismiss}
+            aria-hidden="false"
+          />
 
-      <aside
-        className={`chat-sidebar${open ? ' open' : ''}`}
-        id="timeless-chat"
-        aria-label="Timeless chat"
-        aria-hidden={!open}
-      >
+          <aside
+            className="chat-sidebar open"
+            id="timeless-chat"
+            aria-label="Timeless chat"
+          >
         <header className="chat-sidebar__head">
           <div>
             <p className="chat-sidebar__kicker">Assistant</p>
@@ -185,7 +191,7 @@ function ChatSidebarUI() {
             <button
               type="button"
               className="ghost small-btn chat-sidebar__close"
-              onClick={closeChat}
+              onClick={dismiss}
               aria-label="Collapse chat"
             >
               <CaretRight size={18} weight="bold" aria-hidden />
@@ -242,6 +248,8 @@ function ChatSidebarUI() {
           </button>
         </footer>
       </aside>
+        </>
+      ) : null}
     </>
   );
 }

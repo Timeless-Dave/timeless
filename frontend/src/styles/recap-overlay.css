@@ -107,3 +107,189 @@
 .recap-body--muted {
   color: var(--muted);
 }
+
+/* Recap as a decision loop: judge goals, correct evidence, keep a lesson. */
+.recap-step {
+  margin: 0 0 0.35rem;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.recap-goals,
+.recap-evidence {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 42vh;
+  overflow-y: auto;
+}
+
+.recap-goal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.recap-goal--done .recap-goal__text {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.recap-goal--dropped .recap-goal__text {
+  color: var(--muted);
+}
+
+.recap-goal__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.recap-goal__text {
+  font-weight: 600;
+  text-align: left;
+}
+
+.recap-goal__meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.recap-goal__carried,
+.recap-goal__note {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.recap-goal__note::before { content: '“'; }
+.recap-goal__note::after { content: '”'; }
+
+.recap-goal__actions,
+.recap-evidence__buckets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.recap-evidence li {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  text-align: left;
+}
+
+.recap-evidence__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.recap-evidence__title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recap-evidence__minutes {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.recap-evidence__buckets .on {
+  background: color-mix(in srgb, var(--accent) 16%, var(--card));
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.recap-evidence__flag {
+  align-self: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-readable, var(--accent));
+}
+
+.recap-caveat {
+  margin: 0.75rem 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.recap-lesson {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  text-align: left;
+}
+
+.recap-lesson__label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.recap-lesson textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+}
+
+.recap-warning {
+  margin: 0.6rem 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Week bars now fill by completion, so they need an inner element. */
+.week-col i {
+  position: relative;
+  display: block;
+  overflow: hidden;
+}
+
+.week-col i b {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: block;
+  background: var(--accent);
+}
+
+/* The close is held until the record is answered, and says how to answer it. */
+.recap-block {
+  margin: 0.9rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid color-mix(in srgb, #cf6f68 40%, var(--line));
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, #cf6f68 8%, transparent);
+  text-align: left;
+}
+
+.recap-block p {
+  margin: 0 0 0.6rem;
+  font-size: 13px;
+  line-height: 1.45;
+}

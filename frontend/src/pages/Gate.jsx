@@ -12,6 +12,8 @@ export default function GatePage({ showToast }) {
   const [today, setToday] = useState('');
   const [day, setDay] = useState('');
   const [plan, setPlan] = useState(null);
+  const [carryForward, setCarryForward] = useState([]);
+  const [meetings, setMeetings] = useState([]);
   const [academics, setAcademics] = useState({ courses: [], presets: [], name: '' });
   const [err, setErr] = useState('');
 
@@ -28,6 +30,8 @@ export default function GatePage({ showToast }) {
       }
       setToday(t.day);
       setDay(t.day);
+      setCarryForward(t.carry_forward || []);
+      setMeetings(t.meetings || []);
       const p = await api('/api/plan?day=' + encodeURIComponent(t.day));
       setPlan(p);
       try {
@@ -60,8 +64,8 @@ export default function GatePage({ showToast }) {
         {!reduce ? <OverlayBackground variant="warm" /> : null}
         <div className="panel card gate-panel">
           <p className="get-started-kicker">Daily gate</p>
-          <h1 className="page-title">Lock a plan</h1>
-          <p className="card-lead">Today stays locked until this day&apos;s plan is saved.</p>
+          <h1 className="page-title">Plan the day</h1>
+          <p className="card-lead">Timeless stays closed until this day has a saved plan.</p>
           {err ? <p className="empty-note">{err}</p> : null}
           <PlanEditor
             compact
@@ -69,6 +73,8 @@ export default function GatePage({ showToast }) {
             planDay={day}
             minDay={today}
             academics={academics}
+            carryForward={day === today ? carryForward : []}
+            meetings={day === today ? meetings : []}
             onDayChange={onDayChange}
             onSaved={onSaved}
             showToast={showToast}

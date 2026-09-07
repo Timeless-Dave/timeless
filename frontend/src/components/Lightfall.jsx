@@ -221,7 +221,8 @@ const Lightfall = ({
       renderer = new Renderer({
         dpr: dpr ?? (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1),
         alpha: true,
-        antialias: true
+        antialias: true,
+        premultipliedAlpha: false,
       });
     } catch {
       container.dataset.webglFallback = 'true';
@@ -229,6 +230,7 @@ const Lightfall = ({
     }
     rendererRef.current = renderer;
     const gl = renderer.gl;
+    gl.clearColor(0, 0, 0, 0);
     const canvas = gl.canvas;
 
     canvas.style.width = '100%';
@@ -380,6 +382,7 @@ const Lightfall = ({
       ref={containerRef}
       className={`lightfall-container ${className ?? ''}`}
       style={{
+        backgroundColor,
         ...(mixBlendMode && { mixBlendMode })
       }} />
   );

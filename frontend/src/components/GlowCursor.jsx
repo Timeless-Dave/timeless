@@ -153,27 +153,31 @@ const GlowCursor = ({
   const canvasRef = useRef(null);
   const propsRef = useRef({});
 
-  propsRef.current = {
-    color,
-    secondaryColor,
-    trailLength,
-    trailWidth,
-    trailTaper,
-    followSpeed,
-    glowIntensity,
-    glowSpread,
-    hotspot,
-    brightness,
-    opacity,
-    pulseSpeed,
-    noiseStrength,
-    idleFade,
-    idleTimeout,
-    fadeDuration,
-    maxDevicePixelRatio,
-    blendMode,
-    enabled
-  };
+  // Written in an effect, not during render: the animation loop reads this ref
+  // outside React's render cycle, so it only needs to be current by commit time.
+  useEffect(() => {
+    propsRef.current = {
+      color,
+      secondaryColor,
+      trailLength,
+      trailWidth,
+      trailTaper,
+      followSpeed,
+      glowIntensity,
+      glowSpread,
+      hotspot,
+      brightness,
+      opacity,
+      pulseSpeed,
+      noiseStrength,
+      idleFade,
+      idleTimeout,
+      fadeDuration,
+      maxDevicePixelRatio,
+      blendMode,
+      enabled,
+    };
+  });
 
   useEffect(() => {
     const container = containerRef.current;

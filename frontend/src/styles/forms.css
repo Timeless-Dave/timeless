@@ -1,0 +1,184 @@
+/* Shared field, modal, and popover sizing */
+
+:root {
+  --field-min-height: 2.75rem;
+  --modal-width: min(34rem, calc(100vw - 2rem));
+}
+
+input,
+textarea,
+select {
+  min-height: var(--field-min-height);
+  line-height: 1.45;
+  color: var(--ink);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+textarea {
+  min-height: 5.5rem;
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+  resize: vertical;
+}
+
+input[type='time'],
+input[type='date'],
+input[type='range'] {
+  min-height: var(--field-min-height);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--focus-ring, var(--accent)) 60%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring, var(--accent)) 20%, transparent);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 88%, transparent);
+}
+
+/* Plan editor rows read as form cards */
+.goal-row {
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--canvas) 88%, var(--card));
+}
+
+.goal-row__fields > input[type='text'],
+.goal-row__next {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+}
+
+.goal-row__next {
+  font-size: 15px;
+}
+
+.block-row input,
+.block-row select {
+  padding: 0.65rem 0.75rem;
+}
+
+.plan-editor__day input[type='date'] {
+  width: min(100%, 16rem);
+}
+
+/* Header popovers (Focus, Theme, Status) */
+.pop {
+  width: min(22rem, calc(100vw - 1.5rem));
+  padding: 1.15rem 1.25rem 1.2rem;
+}
+
+.pop__help {
+  margin: 0 0 0.85rem;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* Note dialog */
+.note-dialog__scrim {
+  padding: 1.25rem;
+  align-items: center;
+}
+
+.note-dialog {
+  width: var(--modal-width);
+  max-height: min(88dvh, 32rem);
+  overflow: auto;
+  padding: 1.4rem 1.5rem 1.25rem;
+}
+
+.note-dialog__title {
+  font-size: 20px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.note-dialog__hint {
+  font-size: 14px;
+}
+
+.note-dialog textarea {
+  min-height: 7rem;
+}
+
+.note-dialog__actions {
+  margin-top: 1.15rem;
+  padding-top: 0.15rem;
+}
+
+.note-dialog__actions button {
+  min-width: 5.5rem;
+}
+
+/* Note dialog field spacing */
+.note-dialog__field {
+  margin-top: 1rem;
+}
+
+.note-dialog__label {
+  font-size: 13px;
+}
+
+/* Gate / recap full-screen overlays */
+.overlay-page .panel.gate-panel,
+.overlay-page .recap-ticket {
+  width: min(40rem, calc(100vw - 2rem));
+  padding: 1.5rem 1.65rem 1.4rem;
+}
+
+.gate-panel {
+  width: min(40rem, calc(100vw - 2rem));
+}
+
+.recap-lesson textarea {
+  min-height: 6.5rem;
+  padding: 0.75rem 0.85rem;
+}
+
+.chat-sidebar__composer input {
+  min-height: var(--field-min-height);
+  padding: 0.7rem 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .note-dialog__scrim {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .note-dialog {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    padding: 1.25rem 1.15rem calc(1.15rem + env(safe-area-inset-bottom));
+  }
+
+  .pop {
+    right: 0;
+    left: 0;
+    width: auto;
+    max-width: none;
+  }
+
+  .goal-row {
+    padding: 0.75rem 0.8rem;
+  }
+}
+
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select,
+  .note-dialog__actions button {
+    min-height: 44px;
+  }
+}

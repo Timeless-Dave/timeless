@@ -232,7 +232,6 @@ const PillNav = ({
             to={items[0].href}
             aria-label="Home"
             onMouseEnter={handleLogoEnter}
-            role="menuitem"
             ref={el => {
               logoRef.current = el;
             }}>
@@ -252,12 +251,11 @@ const PillNav = ({
         )}
 
         <div className="pill-nav-items desktop-only" ref={navItemsRef}>
-          <ul className="pill-list" role="menubar">
+          <ul className="pill-list">
             {items.map((item, i) => (
-              <li key={item.href || `item-${i}`} role="none">
+              <li key={item.href || `item-${i}`}>
                 {isRouterLink(item.href) ? (
                   <Link
-                    role="menuitem"
                     to={item.href}
                     className={`pill${activeHref === item.href ? ' is-active' : ''}`}
                     aria-label={item.ariaLabel || item.label}
@@ -278,7 +276,6 @@ const PillNav = ({
                   </Link>
                 ) : (
                   <a
-                    role="menuitem"
                     href={item.href}
                     className={`pill${activeHref === item.href ? ' is-active' : ''}`}
                     aria-label={item.ariaLabel || item.label}
@@ -307,7 +304,10 @@ const PillNav = ({
           className="mobile-menu-button mobile-only"
           onClick={toggleMobileMenu}
           aria-label="Toggle menu"
-          ref={hamburgerRef}>
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="pill-nav-mobile-menu"
+          ref={hamburgerRef}
+        >
           <span className="hamburger-line" />
           <span className="hamburger-line" />
         </button>
@@ -315,8 +315,10 @@ const PillNav = ({
 
       <div
         className="mobile-menu-popover mobile-only"
+        id="pill-nav-mobile-menu"
         ref={mobileMenuRef}
-        style={cssVars}>
+        style={cssVars}
+      >
         <ul className="mobile-menu-list">
           {items.map((item, i) => (
             <li key={item.href || `mobile-item-${i}`}>

@@ -1,116 +1,217 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ArchivedGoals from '@/components/ArchivedGoals';
+import { useIsMobile } from '@/hooks/useReducedMotion';
 import { api } from '@/lib/api';
+import { templatesForAcademics } from '@/lib/plan-suggestions';
 import {
-  blocksFromTimeline,
-  goalsFromOutcomes,
-  newGoalId,
-  outcomesFromGoals,
-  timelineFromBlocks,
+  blocksFromPlan,
+  emptyBlock,
+  emptyGoal,
+  goalsFromPlan,
+  planPayload,
 } from '@/lib/plan-form';
+import { formatDuration, validatePlan } from '@/lib/plan-validation';
+import { deferredLabel, statusLabel, statusTone } from '@/lib/goals';
+import { usePlanDraft } from '@/hooks/usePlanDraft';
+
+const SAVE_LABEL = { saved: 'Saved', unsaved: 'Unsaved changes', saving: 'Saving…' };
 
 export default function PlanEditor({
   plan,
   planDay,
   minDay,
   academics,
+  carryForward = [],
+  meetings = [],
   onDayChange,
   onSaved,
   showToast,
   showCalendarSync = true,
   compact = false,
 }) {
-  const [goals, setGoals] = useState(() => goalsFromOutcomes(plan?.outcomes));
-  const [blocks, setBlocks] = useState(() => blocksFromTimeline(plan?.timeline));
+  const [goals, setGoals] = useState(() => goalsFromPlan(plan));
+  const [blocks, setBlocks] = useState(() => blocksFromPlan(plan, goalsFromPlan(plan)));
+  const [removed, setRemoved] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [archiveRefreshKey, setArchiveRefreshKey] = useState(0);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [serverError, setServerError] = useState('');
   const loadedDay = useRef('');
+  const draft = usePlanDraft(planDay, plan?.updated_at);
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    setTemplatesOpen(!isMobile);
+  }, [isMobile]);
+
+  const applyPlan = useCallback(
+    source => {
+      const nextGoals = goalsFromPlan(source);
+      setGoals(nextGoals);
+      setBlocks(blocksFromPlan(source, nextGoals));
+    },
+    []
+  );
 
   useEffect(() => {
     if (loadedDay.current === planDay && plan == null) return;
     loadedDay.current = planDay;
-    setGoals(goalsFromOutcomes(plan?.outcomes));
-    setBlocks(blocksFromTimeline(plan?.timeline));
-  }, [planDay, plan]);
-
-  const presetActive = useMemo(() => {
-    const texts = new Set(
-      goals.map(g => g.text.trim().toLowerCase()).filter(Boolean)
-    );
-    return new Set((academics?.presets || []).filter(p => texts.has(p.toLowerCase())));
-  }, [goals, academics?.presets]);
-
-  const togglePreset = preset => {
-    const lower = preset.toLowerCase();
-    const has = goals.some(g => g.text.trim().toLowerCase() === lower);
-    if (has) {
-      setGoals(prev => prev.filter(g => g.text.trim().toLowerCase() !== lower));
+    setRemoved(null);
+    setServerError('');
+    const saved = draft.restore();
+    if (saved?.goals?.length) {
+      setGoals(saved.goals);
+      setBlocks(saved.blocks || [emptyBlock()]);
+      draft.setStatus('unsaved');
+      showToast?.('Restored unsaved changes for this day.', 'cyan');
       return;
     }
-    setGoals(prev => {
-      const trimmed = prev.filter(g => g.text.trim());
-      if (trimmed.some(g => g.text.trim().toLowerCase() === lower)) return prev;
-      return [...trimmed, { id: newGoalId(), text: preset }];
-    });
+    applyPlan(plan);
+    draft.setStatus('saved');
+    // `draft` is stable per day; re-running on its identity would loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planDay, plan, applyPlan]);
+
+  // Every edit funnels through here so dirty state and the draft stay in step.
+  const edit = useCallback(
+    (nextGoals, nextBlocks) => {
+      if (nextGoals) setGoals(nextGoals);
+      if (nextBlocks) setBlocks(nextBlocks);
+      draft.save({ goals: nextGoals || goals, blocks: nextBlocks || blocks });
+    },
+    [draft, goals, blocks]
+  );
+
+  const validation = useMemo(
+    () => validatePlan(goals, blocks, { meetings }),
+    [goals, blocks, meetings]
+  );
+
+  const templates = useMemo(() => templatesForAcademics(academics), [academics]);
+
+  const activeTemplateKeys = useMemo(
+    () => new Set(goals.map(goal => goal.templateKey).filter(Boolean)),
+    [goals]
+  );
+
+  const pending = useMemo(() => {
+    const taken = new Set(goals.map(g => g.carriedFrom).filter(v => v != null));
+    return (carryForward || []).filter(goal => !taken.has(goal.id));
+  }, [carryForward, goals]);
+
+  const addGoalRow = goal => edit([...goals.filter(g => g.text.trim()), goal]);
+
+  const toggleTemplate = template => {
+    if (activeTemplateKeys.has(template.key)) {
+      edit(goals.filter(goal => goal.templateKey !== template.key));
+      return;
+    }
+    addGoalRow(
+      emptyGoal({
+        text: template.outcome,
+        nextStep: template.nextStep,
+        templateKey: template.key,
+      })
+    );
   };
 
-  const updateGoal = (id, text) => {
-    setGoals(prev => prev.map(g => (g.id === id ? { ...g, text } : g)));
+  const carryGoal = goal =>
+    addGoalRow(
+      emptyGoal({ text: goal.text, carriedFrom: goal.id, deferredCount: (goal.deferred_count || 0) + 1 })
+    );
+
+  const patchGoal = (key, patch) => edit(goals.map(g => (g.key === key ? { ...g, ...patch } : g)));
+
+  const updateGoal = (key, text) => patchGoal(key, { text });
+
+  const removeGoal = key => {
+    const goal = goals.find(g => g.key === key);
+    const detached = blocks.filter(b => b.goalKey === key).length;
+    const next = goals.filter(g => g.key !== key);
+    edit(
+      next.length ? next : [emptyGoal()],
+      blocks.map(b => (b.goalKey === key ? { ...b, goalKey: '' } : b))
+    );
+    setRemoved({ goal, detached, blockKeys: blocks.filter(b => b.goalKey === key).map(b => b.key) });
   };
 
-  const removeGoal = id => {
-    setGoals(prev => {
-      const next = prev.filter(g => g.id !== id);
-      return next.length ? next : [{ id: newGoalId(), text: '' }];
-    });
+  const undoRemove = () => {
+    if (!removed) return;
+    const index = goals.findIndex(g => !g.text.trim());
+    const restored = [...goals.filter(g => g.text.trim() || goals.length === 1), removed.goal];
+    edit(
+      index >= 0 && goals.length === 1 ? [removed.goal] : restored,
+      blocks.map(b => (removed.blockKeys.includes(b.key) ? { ...b, goalKey: removed.goal.key } : b))
+    );
+    setRemoved(null);
   };
 
-  const addGoal = () => {
-    setGoals(prev => [...prev, { id: newGoalId(), text: '' }]);
-  };
+  const updateBlock = (key, field, value) =>
+    edit(null, blocks.map(b => (b.key === key ? { ...b, [field]: value } : b)));
 
-  const updateBlock = (id, field, value) => {
-    setBlocks(prev => prev.map(b => (b.id === id ? { ...b, [field]: value } : b)));
-  };
-
-  const removeBlock = id => {
-    setBlocks(prev => {
-      const next = prev.filter(b => b.id !== id);
-      return next.length ? next : [{ id: newGoalId(), start: '09:00', end: '10:00', task: '' }];
-    });
+  const removeBlock = key => {
+    const next = blocks.filter(b => b.key !== key);
+    edit(null, next.length ? next : [emptyBlock()]);
   };
 
   const addBlock = () => {
-    setBlocks(prev => [...prev, { id: newGoalId(), start: '09:00', end: '10:00', task: '' }]);
+    const last = [...blocks].reverse().find(b => b.end);
+    edit(null, [...blocks, emptyBlock(last ? { start: last.end, end: last.end } : {})]);
+  };
+
+  const changeDay = next => {
+    if (draft.isDirty() && !window.confirm('You have unsaved changes for this day. Switch anyway?')) {
+      return;
+    }
+    onDayChange?.(next);
   };
 
   const save = async () => {
+    if (validation.errors.length) {
+      showToast?.('Fix the schedule errors first.');
+      return;
+    }
     setSaving(true);
+    draft.setStatus('saving');
+    setServerError('');
     try {
-      const outcomes = outcomesFromGoals(goals);
-      const timeline = timelineFromBlocks(blocks);
       await api('/api/plan', {
         method: 'POST',
-        body: JSON.stringify({ outcomes, timeline, day: planDay }),
+        body: JSON.stringify({ ...planPayload(goals, blocks), day: planDay }),
       });
+      draft.clear();
+      setRemoved(null);
+      setArchiveRefreshKey(key => key + 1);
       showToast?.('Plan saved.', 'mint');
       await onSaved?.();
     } catch (err) {
+      setServerError(err.message);
+      draft.setStatus('unsaved');
       showToast?.(err.message);
     } finally {
       setSaving(false);
     }
   };
 
+  const issuesFor = key => validation.byKey.get(key) || [];
+  const goalOptions = goals.filter(g => g.text.trim());
+  const planTotal = formatDuration(validation.plannedMinutes);
+  const globalIssues = [...validation.errors, ...validation.warnings].filter(issue => !issue.key);
+
   return (
     <div className={`plan-editor${compact ? ' plan-editor--compact' : ''}`}>
       {!compact ? (
         <div className="card-head">
-          <h2>Today</h2>
-          <input type="date" value={planDay} min={minDay} onChange={e => onDayChange?.(e.target.value)} />
+          <h2>Plan</h2>
+          <label className="plan-editor__day plan-editor__day--inline">
+            <span className="visually-hidden">Plan day</span>
+            <input type="date" value={planDay} min={minDay} onChange={e => changeDay(e.target.value)} />
+          </label>
         </div>
       ) : (
         <label className="plan-editor__day">
           <span>Day</span>
-          <input type="date" value={planDay} min={minDay} onChange={e => onDayChange?.(e.target.value)} />
+          <input type="date" value={planDay} min={minDay} onChange={e => changeDay(e.target.value)} />
         </label>
       )}
 
@@ -137,50 +238,104 @@ export default function PlanEditor({
         </div>
       ) : null}
 
+      {pending.length ? (
+        <div className="carry-forward">
+          <p className="goal-section__hint">
+            Unfinished from your last planned day. Pull anything still worth doing.
+          </p>
+          <div className="preset-chips" role="group" aria-label="Unfinished goals to carry forward">
+            {pending.map(goal => (
+              <button key={goal.id} type="button" className="ghost preset-chip" onClick={() => carryGoal(goal)}>
+                {goal.text}
+                {goal.deferred_count ? <em> · {deferredLabel(goal.deferred_count)}</em> : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div className="goal-section">
         <div className="goal-section__head">
           <div>
             <strong className="goal-section__title">Today&apos;s wins</strong>
-            <p className="goal-section__hint">One line per outcome. Tap a preset or type your own.</p>
+            <p className="goal-section__hint">
+              Outcome first, then the next physical action. The first goal is your must-win if the day goes sideways.
+            </p>
           </div>
-          <button type="button" className="ghost small-btn" onClick={addGoal}>
+          <button type="button" className="ghost small-btn" onClick={() => edit([...goals, emptyGoal()])}>
             + Goal
           </button>
         </div>
 
-        {(academics?.presets || []).length ? (
-          <div className="preset-chips" role="group" aria-label="Study presets">
-            {(academics.presets || []).map(preset => (
+        {templates.length ? (
+          <div className="plan-templates">
+            {isMobile ? (
               <button
-                key={preset}
                 type="button"
-                className={`ghost preset-chip${presetActive.has(preset) ? ' on' : ''}`}
-                aria-pressed={presetActive.has(preset)}
-                onClick={() => togglePreset(preset)}
+                className="ghost plan-templates__toggle"
+                aria-expanded={templatesOpen}
+                aria-controls="plan-templates"
+                onClick={() => setTemplatesOpen(open => !open)}
               >
-                {preset}
+                {templatesOpen ? 'Hide quick starts' : 'Quick starts'}
               </button>
-            ))}
+            ) : (
+              <p className="goal-section__hint plan-templates__hint">
+                Quick starts add an outcome and next action — edit them to match today&apos;s work.
+              </p>
+            )}
+            <div id="plan-templates" hidden={isMobile && !templatesOpen}>
+              <div className="preset-chips" role="group" aria-label="Quick starts">
+                {templates.map(template => (
+                  <button
+                    key={template.key}
+                    type="button"
+                    className={`ghost preset-chip${activeTemplateKeys.has(template.key) ? ' on' : ''}`}
+                    aria-pressed={activeTemplateKeys.has(template.key)}
+                    onClick={() => toggleTemplate(template)}
+                  >
+                    {template.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         ) : null}
 
         <ul className="goal-list">
           {goals.map((goal, index) => (
-            <li key={goal.id} className="goal-row">
+            <li key={goal.key} className="goal-row">
               <span className="goal-row__index" aria-hidden="true">
                 {index + 1}
               </span>
-              <input
-                type="text"
-                value={goal.text}
-                onChange={e => updateGoal(goal.id, e.target.value)}
-                placeholder="Concrete win for today"
-                aria-label={`Goal ${index + 1}`}
-              />
+              <div className="goal-row__fields">
+                {index === 0 ? <span className="goal-row__must-win">Must-win</span> : null}
+                <input
+                  type="text"
+                  value={goal.text}
+                  onChange={e => updateGoal(goal.key, e.target.value)}
+                  placeholder="Outcome for today"
+                  aria-label={`Goal ${index + 1} outcome`}
+                />
+                <input
+                  type="text"
+                  className="goal-row__next"
+                  value={goal.nextStep || ''}
+                  onChange={e => patchGoal(goal.key, { nextStep: e.target.value })}
+                  placeholder="Next physical action"
+                  aria-label={`Goal ${index + 1} next action`}
+                />
+              </div>
+              {goal.id && goal.status !== 'planned' ? (
+                <span className={`chip ${statusTone(goal.status)}`}>{statusLabel(goal.status)}</span>
+              ) : null}
+              {goal.carriedFrom ? (
+                <span className="goal-row__carried">{deferredLabel(goal.deferredCount)}</span>
+              ) : null}
               <button
                 type="button"
                 className="ghost goal-row__remove"
-                onClick={() => removeGoal(goal.id)}
+                onClick={() => removeGoal(goal.key)}
                 aria-label={`Remove goal ${index + 1}`}
               >
                 Remove
@@ -188,62 +343,153 @@ export default function PlanEditor({
             </li>
           ))}
         </ul>
+
+        {removed?.goal ? (
+          <div className="undo-strip" role="status">
+            <span>
+              Removed “{removed.goal.text || 'empty goal'}”.
+              {removed.detached
+                ? ` ${removed.detached} time block${removed.detached === 1 ? '' : 's'} no longer point at it.`
+                : ''}
+              {removed.goal.id ? ' Its history is kept.' : ''}
+            </span>
+            <button type="button" className="ghost small-btn" onClick={undoRemove}>
+              Undo
+            </button>
+          </div>
+        ) : null}
       </div>
+
+      <ArchivedGoals
+        key={planDay}
+        day={planDay}
+        refreshToken={archiveRefreshKey}
+        onRestored={onSaved}
+        showToast={showToast}
+      />
 
       <div className="block-section">
         <div className="goal-section__head">
           <div>
             <strong className="goal-section__title">Time blocks</strong>
-            <p className="goal-section__hint">Shape the day in focused chunks.</p>
+            <p className="goal-section__hint">
+              Optional. Shape the day in focused chunks, and say which goal each one serves.
+            </p>
           </div>
-          <button type="button" className="ghost small-btn" onClick={addBlock}>
-            + Block
-          </button>
+          <div className="block-section__meta">
+            <span className="plan-total">{planTotal} planned</span>
+            <button type="button" className="ghost small-btn" onClick={addBlock}>
+              + Block
+            </button>
+          </div>
         </div>
         <ul className="block-list">
-          {blocks.map((block, index) => (
-            <li key={block.id} className="block-row">
-              <span className="block-row__index" aria-hidden="true">
-                {index + 1}
-              </span>
-              <input
-                type="time"
-                value={block.start}
-                onChange={e => updateBlock(block.id, 'start', e.target.value)}
-                aria-label={`Block ${index + 1} start`}
-              />
-              <span className="block-row__sep">to</span>
-              <input
-                type="time"
-                value={block.end}
-                onChange={e => updateBlock(block.id, 'end', e.target.value)}
-                aria-label={`Block ${index + 1} end`}
-              />
-              <input
-                type="text"
-                className="block-row__task"
-                value={block.task}
-                onChange={e => updateBlock(block.id, 'task', e.target.value)}
-                placeholder="What you'll do"
-                aria-label={`Block ${index + 1} focus`}
-              />
-              <button
-                type="button"
-                className="ghost block-row__remove"
-                onClick={() => removeBlock(block.id)}
-                aria-label={`Remove block ${index + 1}`}
-              >
-                Remove
-              </button>
-            </li>
-          ))}
+          {blocks.map((block, index) => {
+            const issues = issuesFor(block.key);
+            const hasError = validation.errors.some(issue => issue.key === block.key);
+            // Screen readers hear the reason, not just that a field is invalid.
+            const issuesId = issues.length ? `block-issues-${block.key}` : undefined;
+            const describe = field =>
+              issues.some(issue => issue.field === field) ? issuesId : undefined;
+            return (
+              <li key={block.key} className={`block-row${hasError ? ' block-row--error' : ''}`}>
+                <span className="block-row__index" aria-hidden="true">
+                  {index + 1}
+                </span>
+                <input
+                  type="time"
+                  value={block.start}
+                  aria-invalid={validation.errors.some(i => i.key === block.key && i.field === 'start')}
+                  aria-describedby={describe('start')}
+                  onChange={e => updateBlock(block.key, 'start', e.target.value)}
+                  aria-label={`Block ${index + 1} start`}
+                />
+                <span className="block-row__sep">to</span>
+                <input
+                  type="time"
+                  value={block.end}
+                  aria-invalid={validation.errors.some(i => i.key === block.key && i.field === 'end')}
+                  aria-describedby={describe('end')}
+                  onChange={e => updateBlock(block.key, 'end', e.target.value)}
+                  aria-label={`Block ${index + 1} end`}
+                />
+                <input
+                  type="text"
+                  className="block-row__task"
+                  value={block.task}
+                  onChange={e => updateBlock(block.key, 'task', e.target.value)}
+                  placeholder="What you'll do"
+                  aria-label={`Block ${index + 1} focus`}
+                />
+                <select
+                  className="block-row__goal"
+                  value={block.goalKey}
+                  onChange={e => updateBlock(block.key, 'goalKey', e.target.value)}
+                  aria-label={`Block ${index + 1} goal`}
+                >
+                  <option value="">No goal</option>
+                  {goalOptions.map(goal => (
+                    <option key={goal.key} value={goal.key}>
+                      {goal.text}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="ghost block-row__remove"
+                  onClick={() => removeBlock(block.key)}
+                  aria-label={`Remove block ${index + 1}`}
+                >
+                  Remove
+                </button>
+                {issues.length ? (
+                  <ul className="block-row__issues" id={issuesId}>
+                    {issues.map(issue => (
+                      <li
+                        key={issue.message}
+                        className={
+                          validation.errors.includes(issue) ? 'issue issue--error' : 'issue issue--warning'
+                        }
+                      >
+                        {issue.message}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       </div>
 
+      {globalIssues.length ? (
+        <ul className="plan-issues" role={validation.errors.length ? 'alert' : undefined}>
+          {globalIssues.map(issue => (
+            <li
+              key={issue.message}
+              className={validation.errors.includes(issue) ? 'issue issue--error' : 'issue issue--warning'}
+            >
+              {issue.message}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {serverError ? (
+        <p className="issue issue--error" role="alert">
+          {serverError}
+        </p>
+      ) : null}
+
       <div className="plan-editor__actions row">
-        <button type="button" onClick={save} disabled={saving}>
-          {saving ? 'Saving…' : compact ? 'Lock plan' : 'Save plan'}
+        <button type="button" onClick={save} disabled={saving || validation.errors.length > 0}>
+          {saving ? 'Saving…' : 'Save plan'}
         </button>
+        <span className={`save-status save-status--${draft.status}`} role="status">
+          {validation.errors.length
+            ? `${validation.errors.length} problem${validation.errors.length === 1 ? '' : 's'} to fix`
+            : SAVE_LABEL[draft.status]}
+        </span>
       </div>
     </div>
   );

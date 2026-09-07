@@ -8,6 +8,7 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const GatePage = lazy(() => import('@/pages/Gate'));
 const HaltPage = lazy(() => import('@/pages/Halt'));
 const RecapPage = lazy(() => import('@/pages/Recap'));
+const OpsPage = lazy(() => import('@/pages/Ops'));
 
 loadTheme();
 
@@ -20,10 +21,15 @@ function Shell({ showToast, toast }) {
         <Route path="/gate" element={<GatePage showToast={showToast} />} />
         <Route path="/halt" element={<HaltPage showToast={showToast} />} />
         <Route path="/recap" element={<RecapPage showToast={showToast} />} />
+        <Route path="/ops" element={<OpsPage showToast={showToast} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
-      {toast ? <div className={`toast show${toast.tone ? ` toast-${toast.tone}` : ''}`}>{toast.message}</div> : null}
+      <div className="toast-region" role="status" aria-live="polite" aria-atomic="true">
+        {toast ? (
+          <div className={`toast show${toast.tone ? ` toast-${toast.tone}` : ''}`}>{toast.message}</div>
+        ) : null}
+      </div>
     </>
   );
 }

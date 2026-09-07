@@ -14,11 +14,14 @@ def store(tmp_path):
     s.close()
 
 
-def test_empty_plan_rejected(store):
+def test_a_plan_needs_a_goal_but_not_a_schedule(store):
     with pytest.raises(ValueError):
         store.save_plan("", [{"task": "x", "start": "09:00", "end": "10:00"}])
-    with pytest.raises(ValueError):
-        store.save_plan("ship", [])
+    # Goal-only days are legitimate. Demanding a time block only taught people to
+    # type a placeholder one to get past the gate.
+    plan = store.save_plan("ship", [])
+    assert [g["text"] for g in plan["goals"]] == ["ship"]
+    assert plan["timeline"] == []
 
 
 def test_store_serializes_concurrent_connection_use(store):

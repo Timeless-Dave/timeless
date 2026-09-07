@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { minuteSplit } from '@/lib/evidence';
 import './BentoAnalytics.css';
 
 const COLORS = ['#d08726', '#5c8d89', '#cf6f68', '#7294c2', '#9178b8'];
@@ -46,17 +47,32 @@ function point(value, index, count, radius = 78) {
 }
 
 function RadarChart({ metrics }) {
-  const path = metrics.map((metric, index) => point(metric.value, index, metrics.length).join(',')).join(' ');
+  // A dimension with no measurement is left out of the shape entirely: plotting
+  // it as zero would draw absent data as a measured failure.
+  const measured = metrics.filter(metric => metric.value != null);
+  const missing = metrics.filter(metric => metric.value == null);
+  if (measured.length < 3) {
+    return (
+      <article className="analytics-tile analytics-radar">
+        <h3>Alignment profile</h3>
+        <p className="empty-note">
+          Not enough measured dimensions yet.{' '}
+          {missing.length ? `Waiting on: ${missing.map(metric => metric.label.toLowerCase()).join(', ')}.` : ''}
+        </p>
+      </article>
+    );
+  }
+  const path = measured.map((metric, index) => point(metric.value, index, measured.length).join(',')).join(' ');
   return (
     <article className="analytics-tile analytics-radar">
       <h3>Alignment profile</h3>
       <div className="analytics-radar__body">
-        <svg viewBox="0 0 200 200" role="img" aria-label="Goal alignment radar chart">
+        <svg viewBox="0 0 200 200" role="img" aria-label={`Radar chart of ${measured.map(metric => metric.label).join(', ')}`}>
           {[25, 50, 75, 100].map(level => (
-            <polygon key={level} points={metrics.map((_, index) => point(level, index, metrics.length).join(',')).join(' ')} className="radar-grid" />
+            <polygon key={level} points={measured.map((_, index) => point(level, index, measured.length).join(',')).join(' ')} className="radar-grid" />
           ))}
-          {metrics.map((_, index) => {
-            const [x, y] = point(100, index, metrics.length);
+          {measured.map((_, index) => {
+            const [x, y] = point(100, index, measured.length);
             return <line key={index} x1="100" y1="100" x2={x} y2={y} className="radar-axis" />;
           })}
           <motion.polygon
@@ -69,8 +85,15 @@ function RadarChart({ metrics }) {
           />
         </svg>
         <div className="radar-legend">
-          {metrics.map((metric, index) => (
-            <div key={metric.label}><i style={{ background: COLORS[index] }} /><span>{metric.label}</span><strong>{metric.value}%</strong></div>
+          {measured.map((metric, index) => (
+            <div key={metric.label} title={metric.hint}>
+              <i style={{ background: COLORS[index] }} /><span>{metric.label}</span><strong>{metric.value}%</strong>
+            </div>
+          ))}
+          {missing.map(metric => (
+            <div key={metric.label} className="radar-legend__missing">
+              <i /><span>{metric.label}</span><strong>Not measured</strong>
+            </div>
           ))}
         </div>
       </div>
@@ -80,6 +103,14 @@ function RadarChart({ metrics }) {
 
 function DonutChart({ slices }) {
   const [hovered, setHovered] = useState(null);
+  if (!slices.length) {
+    return (
+      <article className="analytics-tile analytics-donut">
+        <h3>Where the day went</h3>
+        <p className="empty-note">No activity has been observed for this day yet.</p>
+      </article>
+    );
+  }
   const total = Math.max(1, slices.reduce((sum, slice) => sum + slice.value, 0));
   const gradient = slices.reduce(
     (result, slice, index) => ({
@@ -113,25 +144,48 @@ export default function BentoAnalytics({ today }) {
   const data = useMemo(() => {
     const heat = (today?.heatmap || []).slice(-7);
     const productivity = today?.productivity || {};
-    const activity = today?.activity_summary || {};
-    const categoryEntries = Object.entries(activity.by_category || activity.categories || {}).slice(0, 5);
-    const days = heat.map(day => ({ label: new Date(`${day.day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 2), value: day.count || 0 }));
+    const progress = today?.goal_progress || {};
+    const minutes = productivity.minutes || {};
+    const judged = productivity.judged_minutes || 0;
+    const tracked = productivity.tracked_minutes || 0;
+    const share = (value, total) => (total ? Math.round((100 * value) / total) : null);
+    const days = heat.map(day => ({
+      label: new Date(`${day.day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 2),
+      value: day.count || 0,
+    }));
     return {
       days: days.length ? days : ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(label => ({ label, value: 0 })),
       metrics: [
-        { label: 'Intent', value: Math.round(productivity.alignment_score ?? productivity.score ?? 0) },
-        { label: 'Focus', value: Math.round(productivity.focus_score ?? 0) },
-        { label: 'Follow-through', value: Math.round(productivity.follow_through ?? productivity.completion_score ?? 0) },
-        { label: 'Study', value: Math.round(productivity.study_score ?? 0) },
-        { label: 'Balance', value: Math.round(productivity.balance_score ?? 0) },
+        {
+          label: 'Goals completed',
+          value: progress.percent ?? null,
+          hint: 'Explicit outcomes you marked done or partly done.',
+        },
+        {
+          label: 'On plan',
+          value: share(minutes.aligned || 0, judged),
+          hint: 'Estimated share of judged activity that matched the plan text.',
+        },
+        {
+          label: 'Undistracted',
+          value: judged ? 100 - share(minutes.distracting || 0, judged) : null,
+          hint: 'Estimated share of judged activity that was not distraction.',
+        },
+        {
+          label: 'Classified',
+          value: tracked ? 100 - Math.round(100 * (productivity.unknown_share || 0)) : null,
+          hint: 'Share of observed time the classifier could place at all.',
+        },
       ],
-      slices: categoryEntries.length ? categoryEntries.map(([label, value]) => ({ label, value: Math.round(Number(value) || 0) })) : [
-        { label: 'Focused', value: Math.round(productivity.aligned_minutes || 0) },
-        { label: 'Useful detour', value: Math.round(productivity.productive_other_minutes || 0) },
-        { label: 'Distracted', value: Math.round(productivity.distracting_minutes || 0) },
-      ],
+      slices: minuteSplit(productivity),
     };
   }, [today]);
 
-  return <section className="analytics-bento" aria-label="Productivity analytics"><BarChart days={data.days} /><RadarChart metrics={data.metrics} /><DonutChart slices={data.slices} /></section>;
+  return (
+    <section className="analytics-bento" aria-label="Productivity analytics">
+      <BarChart days={data.days} />
+      <RadarChart metrics={data.metrics} />
+      <DonutChart slices={data.slices} />
+    </section>
+  );
 }

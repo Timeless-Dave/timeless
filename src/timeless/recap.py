@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import json
 import os
-import re
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
 
 from timeless.clock import due_recap_day
 from timeless.store import Store
@@ -73,41 +70,6 @@ def pull_phone(timeout: int = 25) -> bool:
         return False
 
 
-def _payload(event: dict[str, Any]) -> dict[str, Any]:
-    raw = event.get("payload") or {}
-    if isinstance(raw, str):
-        try:
-            raw = json.loads(raw)
-        except Exception:
-            return {}
-    return raw if isinstance(raw, dict) else {}
-
-
-def _humanize(text: str) -> str:
-    s = (text or "").strip()
-    if not s:
-        return "something"
-    if "://" in s:
-        host = urlparse(s).netloc.replace("www.", "")
-        return host or s[:48]
-    parts = s.split(".")
-    if len(parts) >= 3 and parts[0] in {"com", "org", "net", "io", "app"}:
-        return parts[-1].replace("_", " ").replace("-", " ")
-    toks = s.split()
-    if len(toks) >= 2 and "." in toks[1] and toks[1].count(".") >= 2:
-        return toks[0]
-    return s[:56]
-
-
-def _label(event: dict[str, Any]) -> str:
-    payload = _payload(event)
-    for key in ("app", "title", "host", "url"):
-        val = payload.get(key)
-        if val:
-            return _humanize(str(val))
-    return _humanize(str(event.get("summary") or event.get("source") or "activity"))
-
-
 def _pretty_day(day: str) -> str:
     try:
         d = datetime.strptime(day, "%Y-%m-%d")
@@ -123,30 +85,16 @@ def _short_weekday(day: str) -> str:
         return day[:3]
 
 
-def _split_goals(outcomes: str) -> list[str]:
-    lines: list[str] = []
-    for chunk in re.split(r"[\n;]+", outcomes or ""):
-        text = re.sub(r"^\s*(?:[-•]|\d+[.)])\s*", "", chunk).strip()
-        if text:
-            lines.append(text)
-    return lines
-def _block_line(block: dict[str, Any]) -> str:
-    start = str(block.get("start") or "").strip()
-    end = str(block.get("end") or "").strip()
-    task = str(block.get("task") or "").strip()
-    if start and end:
-        return f"{start}–{end}  {task}"
-    return task
-
-
 def day_stats(store: Store, day: str) -> dict[str, Any]:
+    """Goals set against goals finished — like units, unlike the old blocks/events pair."""
     plan = store.get_plan(day)
-    events = store.events_on_day(day)
+    progress = (plan or {}).get("goal_progress") or {}
     return {
         "day": day,
         "label": _short_weekday(day),
-        "blocks": len((plan or {}).get("timeline") or []),
-        "events": len(events),
+        "goals": progress.get("counted") or 0,
+        "done": progress.get("done") or 0,
+        "partial": progress.get("partial") or 0,
         "had_plan": plan is not None,
     }
 
@@ -160,108 +108,149 @@ def week_compare(store: Store, day: str) -> list[dict[str, Any]]:
     return out
 
 
+def _goal_line(goal: dict[str, Any]) -> str:
+    """One goal as it reads in a static card, with its own words attached."""
+    label = GOAL_LABELS.get(goal.get("status") or "planned", "Planned")
+    line = f"{goal.get('text') or 'a goal'} — {label.lower()}"
+    if goal.get("note"):
+        line += f" ({goal['note']})"
+    carried = goal.get("deferred_count") or 0
+    if carried:
+        line += f" · carried over {carried}x"
+    return line
+
+
+GOAL_LABELS = {
+    "planned": "Not judged yet",
+    "active": "Still open",
+    "done": "Done",
+    "partial": "Partly done",
+    "deferred": "Deferred",
+    "dropped": "Dropped",
+}
+
+
 def build_cards(store: Store, day: str, phone_synced: bool) -> list[dict[str, Any]]:
+    """The end of the daily loop: review each goal, correct the evidence, keep a
+    lesson, and see what carries into tomorrow.
+
+    Interactive cards carry a `kind` and the `day` they act on; the recap screen
+    reads live goal and evidence state for those rather than this snapshot, so a
+    status changed mid-recap is never stale.
+    """
     events = store.events_on_day(day)
     plan = store.get_plan(day)
-    mac = [e for e in events if e["source"] in {"url", "screen"}]
     phone = [e for e in events if e["source"] == "phone"]
-    jobs = [e for e in mac if "http" in (e.get("summary") or "")]
     opps = [o for o in store.list_opportunities() if (o.get("updated_at") or o.get("created_at") or "").startswith(day)]
-    counts: dict[str, int] = {}
-    for e in events:
-        name = _label(e)
-        counts[name] = counts.get(name, 0) + 1
-    ranked = sorted(counts.items(), key=lambda kv: -kv[1])[:3]
-    top_lines = [f"{name} — {n} times" for name, n in ranked]
-    blocks = (plan or {}).get("timeline") or []
-    outcomes = ((plan or {}).get("outcomes") or "").strip()
-    goal_lines = _split_goals(outcomes)
+    goals = (plan or {}).get("goals") or []
+    progress = (plan or {}).get("goal_progress") or {}
+    unjudged = [g for g in goals if (g.get("status") or "planned") in {"planned", "active"}]
+    open_goals = [g for g in goals if (g.get("status") or "planned") in {"planned", "active", "partial", "deferred"}]
     week = week_compare(store, day)
     productivity = store.productivity_on_day(day)
-    productivity_minutes = productivity.get("minutes") or {}
+    minutes = productivity.get("minutes") or {}
+    reflection = store.get_reflection(day)
+    counted = progress.get("counted") or 0
+    done = progress.get("done") or 0
 
     cards: list[dict[str, Any]] = [
         {
             "kicker": "Recap",
             "title": _pretty_day(day),
-            "stat": str(len(events)),
-            "stat_label": "things logged",
-            "body": "A short look at what you meant to do, and what actually showed up.",
-            "lines": [],
-        },
-        {
-            "kicker": "Plan",
-            "title": "What you set out to do",
-            "stat": str(len(goal_lines) or len(blocks)),
-            "stat_label": "goals" if goal_lines else "time blocks",
+            "stat": f"{done}/{counted}" if counted else "—",
+            "stat_label": "goals finished",
             "body": (
-                "Your goals for the day:"
-                if goal_lines
-                else ("You did not lock a plan for this day." if not blocks else "Time blocks you set:")
-            ),
-            "lines": goal_lines + [_block_line(b) for b in blocks if str(b.get("task") or "").strip()],
-        },
-        {
-            "kicker": "Mac",
-            "title": "What held the screen",
-            "stat": str(len(mac)),
-            "stat_label": "Mac notes",
-            "body": "Most of the time was in:" if top_lines else "A quiet day on this Mac.",
-            "lines": top_lines,
-        },
-        {
-            "kicker": "Phone",
-            "title": "In your hand",
-            "stat": str(len(phone)),
-            "stat_label": "phone notes",
-            "body": (
-                f"The phone checked in. It logged {len(phone)} app switches."
-                if phone_synced
-                else "The phone did not sync. This recap is Mac-only."
+                "Close the day: judge each goal, correct anything the Mac read wrong, and keep one lesson."
+                if goals
+                else "You did not plan this day, so there is nothing to judge. A short look at what showed up."
             ),
             "lines": [],
+        },
+        {
+            "kicker": "Goals",
+            "title": "What did you actually finish?",
+            "stat": str(len(unjudged)) if unjudged else str(counted),
+            "stat_label": "still to judge" if unjudged else "goals set",
+            "kind": "goals",
+            "day": day,
+            "body": (
+                "Only you can say whether these are done. Work away from this Mac counts."
+                if goals
+                else "No goals were set for this day."
+            ),
+            "lines": [_goal_line(g) for g in goals],
+        },
+        {
+            "kicker": "Evidence",
+            "title": "What the Mac saw",
+            "stat": str(productivity.get("score")) if productivity.get("score") is not None else "—",
+            "stat_label": "estimated alignment",
+            "kind": "evidence",
+            "day": day,
+            "body": (
+                f"{productivity.get('tracked_minutes', 0)} min observed, "
+                f"{productivity.get('judged_minutes', 0)} min judged, "
+                f"{minutes.get('unknown', 0)} min unclassified. "
+                + (
+                    "The phone checked in too."
+                    if phone_synced
+                    else "The phone did not sync, so this is Mac-only."
+                )
+            ),
+            "lines": [
+                f"On plan — {minutes.get('aligned', 0)} min",
+                f"Useful detour — {minutes.get('productive_off_plan', 0)} min",
+                f"Distraction — {minutes.get('distracting', 0)} min",
+                f"Unclassified — {minutes.get('unknown', 0)} min",
+            ],
         },
         {
             "kicker": "Programs",
             "title": "Jobs and programs",
-            "stat": str(len(opps) or len(jobs)),
+            "stat": str(len(opps)),
             "stat_label": "touched",
             "body": "Roles you touched today:" if opps else "No postings were tagged today.",
             "lines": [(o.get("role") or o.get("url") or "a posting")[:56] for o in opps[:5]],
         },
         {
-            "kicker": "Alignment",
-            "title": "Did the day match the plan?",
-            "stat": str(productivity.get("score")) if productivity.get("score") is not None else "—",
-            "stat_label": "estimated productivity score",
-            "body": (
-                f"{productivity.get('alignment')}% of productive time matched the plan."
-                if productivity.get("alignment") is not None
-                else "Not enough classified activity to estimate alignment."
-            ),
-            "lines": [
-                f"Plan-aligned — {productivity_minutes.get('aligned', 0)} min",
-                f"Productive, off-plan — {productivity_minutes.get('productive_off_plan', 0)} min",
-                f"Distracting — {productivity_minutes.get('distracting', 0)} min",
-                f"Unknown — {productivity_minutes.get('unknown', 0)} min",
-            ],
-        },
-        {
             "kicker": "Compare",
-            "title": "Plan vs what showed up",
-            "stat": str(len(events)),
+            "title": "Goals set against goals finished",
+            "stat": f"{done}/{counted}" if counted else "—",
             "stat_label": "today",
             "kind": "compare",
+            "day": day,
             "body": (
-                f"You planned {len(blocks)} block{'s' if len(blocks) != 1 else ''}. "
-                f"{len(events)} notes landed on this day."
+                f"You set {counted} goal{'s' if counted != 1 else ''} and finished {done}."
+                if counted
+                else "No goals were set for this day."
             ),
             "lines": [],
-            "compare": {
-                "blocks": len(blocks),
-                "events": len(events),
-                "week": week,
-            },
+            "compare": {"goals": counted, "done": done, "week": week},
+        },
+        {
+            "kicker": "Lesson",
+            "title": "One thing worth remembering",
+            "stat": "1",
+            "stat_label": "line is enough",
+            "kind": "lesson",
+            "day": day,
+            "body": "What would you tell yourself before starting this day again?",
+            "lines": [],
+            "lesson": reflection.get("lesson"),
+        },
+        {
+            "kicker": "Tomorrow",
+            "title": "What comes with you",
+            "stat": str(len(open_goals)),
+            "stat_label": "goals still open",
+            "kind": "tomorrow",
+            "day": day,
+            "body": (
+                "These are offered when you plan your next day. Drop anything that no longer matters."
+                if open_goals
+                else "Nothing is left open. Tomorrow starts clean."
+            ),
+            "lines": [_goal_line(g) for g in open_goals],
         },
     ]
     return cards

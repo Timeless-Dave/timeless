@@ -1,6 +1,7 @@
 @import '@/styles/dashboard.css';
 @import '@/styles/dashboard-responsive.css';
 @import '@/styles/plan-editor.css';
+@import '@/styles/forms.css';
 @import '@/styles/recap-overlay.css';
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -15,6 +16,25 @@
   font: 600 1rem/1.4 'Mulish', ui-sans-serif, system-ui, sans-serif;
 }
 
+.overlay-page {
+  background: var(--canvas);
+}
+
+.overlay-bg {
+  overflow: hidden;
+}
+
+.overlay-bg .lightfall-container {
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .pill-nav-slot .pill-nav {
+    --nav-h: 44px;
+    --logo: 44px;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @font-face {
@@ -23,6 +43,13 @@
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
+}
+
+/* An author `display` beats the UA rule for [hidden], so a hidden element keeps
+   its box and, when positioned, keeps swallowing clicks. Found by a browser
+   test: a closed menu was intercepting presses on the controls beneath it. */
+[hidden] {
+  display: none !important;
 }
 
 :root {
@@ -34,8 +61,12 @@
   --body: #383838;
   --muted: #6a6969;
   --line: #e8e7e7;
+  /* Brand accent: decorative fills and large UI chrome. */
   --accent: #d08726;
   --accent-rgb: 208, 135, 38;
+  /* Contrast-safe variants derived in theme.js when the user picks an accent. */
+  --accent-readable: #383838;
+  --focus-ring: #383838;
   --ink-on-dark: #ffffff;
   --muted-on-dark: #cacaca;
   --danger: #e95d5c;
@@ -62,7 +93,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: var(--focus-ring);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -99,18 +130,30 @@ body {
 }
 
 *:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--focus-ring, var(--accent)) 72%, var(--ink));
   outline-offset: 3px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* Decorative motion only — keep short UI feedback on buttons and menus. */
+  .side-rays-slot,
+  .spiral-slot,
+  .streak-slot,
+  .get-started-hero canvas,
+  .lightfall-container canvas,
+  .effects-shell__bg canvas,
+  .infinite-spiral__track {
+    animation: none !important;
+  }
+
+  .infinite-spiral__item,
+  .pop,
+  .chat-sidebar-toggle {
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }
 

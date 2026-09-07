@@ -1,8 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
-
-const TodayContext = createContext(null);
+import { TodayContext } from '@/context/today-context';
 
 export function TodayProvider({ children, navigateOnLoad = false }) {
   const navigate = useNavigate();
@@ -50,6 +49,9 @@ export function TodayProvider({ children, navigateOnLoad = false }) {
   }, [navigate, navigateOnLoad]);
 
   useEffect(() => {
+    // The initial load and the poll below synchronise with the server, which is
+    // the intended use of an effect; every setState here follows an await.
+    // oxlint-disable-next-line react/set-state-in-effect
     refresh({ nav: navigateOnLoad }).catch(() => {});
     api('/api/academics/current')
       .then(setAcademics)
@@ -74,8 +76,3 @@ export function TodayProvider({ children, navigateOnLoad = false }) {
   );
 }
 
-export function useToday() {
-  const ctx = useContext(TodayContext);
-  if (!ctx) throw new Error('useToday must be used within TodayProvider');
-  return ctx;
-}

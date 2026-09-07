@@ -231,8 +231,8 @@ const Cubes = ({
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchend', onTouchEnd);
 
-      rafRef.current != null && cancelAnimationFrame(rafRef.current);
-      idleTimerRef.current && clearTimeout(idleTimerRef.current);
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     };
   }, [onPointerMove, resetAll, onClick, onTouchMove, onTouchStart, onTouchEnd]);
 

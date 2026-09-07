@@ -42,14 +42,27 @@
 
 .goal-row,
 .block-row {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }
 
-.block-row {
-  grid-template-columns: auto auto auto 1fr auto;
+.goal-row > input[type='text'],
+.block-row__task {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.block-row__goal {
+  flex: 0 1 10rem;
+  min-width: 0;
+}
+
+.goal-row__carried {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
 }
 
 .block-row__sep {
@@ -113,4 +126,17 @@
   .goal-row__index {
     display: none;
   }
+}
+
+.carry-forward {
+  margin: 0.75rem 0 0.25rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.carry-forward .preset-chip em {
+  font-style: normal;
+  color: var(--muted);
 }

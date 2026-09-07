@@ -1,12 +1,12 @@
 import ClickSpark from '@/components/ClickSpark';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useGpuBudget } from '@/hooks/useGpuBudget';
 
 export default function EffectsShell({ children, sparkColor }) {
-  const reduce = useReducedMotion();
+  const { quiet } = useGpuBudget();
 
   const inner = <div className="effects-shell__content">{children}</div>;
 
-  if (reduce) return inner;
+  if (quiet) return inner;
 
   const color = sparkColor || 'var(--accent)';
 

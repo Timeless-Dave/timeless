@@ -1,11 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChatCircleDots, CaretRight, PaperPlaneRight, X } from '@phosphor-icons/react';
+import { ChatContext, useChatPanel } from '@/components/chat-context';
 import { api } from '@/lib/api';
 import '@/styles/chat-sidebar.css';
 
 const CHAT_KEY = 'timeless_chat';
-
-const ChatContext = createContext(null);
 
 const HINTS = [
   'What matters now?',
@@ -103,21 +102,19 @@ export function ChatProvider({ onRefresh, children }) {
   const closeChat = useCallback(() => setOpen(false), []);
   const toggleChat = useCallback(() => setOpen(v => !v), []);
 
-  const value = { open, setOpen, openChat, closeChat, toggleChat, thread, send, clear, busy };
+  const value = useMemo(
+    () => ({ open, setOpen, openChat, closeChat, toggleChat, thread, send, clear, busy }),
+    [open, openChat, closeChat, toggleChat, thread, send, clear, busy]
+  );
 
   return (
     <ChatContext.Provider value={value}>
-      {typeof children === 'function' ? children(value) : children}
+      {children}
       <ChatSidebarUI />
     </ChatContext.Provider>
   );
 }
 
-export function useChatPanel() {
-  const ctx = useContext(ChatContext);
-  if (!ctx) throw new Error('useChatPanel must be used within ChatProvider');
-  return ctx;
-}
 
 function ChatSidebarUI() {
   const { open, toggleChat, closeChat, thread, send, clear, busy } = useChatPanel();

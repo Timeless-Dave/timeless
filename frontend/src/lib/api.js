@@ -23,6 +23,15 @@ export async function api(path, opts = {}) {
     clearTimeout(timeout);
   }
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.detail || response.statusText);
+  if (!response.ok) {
+    const error = new Error(data.detail || response.statusText);
+    error.status = response.status;
+    // The service is up but its database connection was discarded mid-transaction.
+    // Nothing was lost; it needs a restart, and saying so beats a bare error.
+    if (response.status === 503) {
+      error.message = `${error.message}. Restart Timeless to continue; no work was lost.`;
+    }
+    throw error;
+  }
   return data;
 }

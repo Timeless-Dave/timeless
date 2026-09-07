@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 
@@ -36,6 +37,21 @@ CREATE TABLE IF NOT EXISTS daily_plans (
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS plan_goals (
+    id INTEGER PRIMARY KEY,
+    day TEXT NOT NULL,
+    text TEXT NOT NULL,
+    position INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned','active','done','partial','deferred','dropped')),
+    note TEXT,
+    carried_from INTEGER,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    completed_at TEXT,
+    archived_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_plan_goals_day ON plan_goals(day, position);
 
 CREATE TABLE IF NOT EXISTS rituals (
     id INTEGER PRIMARY KEY,
@@ -116,6 +132,22 @@ CREATE TABLE IF NOT EXISTS daily_recaps (
     acked_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS daily_reflections (
+    day TEXT PRIMARY KEY,
+    lesson TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS activity_corrections (
+    id INTEGER PRIMARY KEY,
+    day TEXT NOT NULL,
+    title TEXT NOT NULL,
+    bucket TEXT NOT NULL CHECK (bucket IN ('aligned','productive_off_plan','distracting','unknown')),
+    created_at TEXT NOT NULL,
+    UNIQUE (day, title)
+);
+
 CREATE TABLE IF NOT EXISTS quiet_periods (
     id INTEGER PRIMARY KEY,
     level TEXT NOT NULL CHECK (level IN ('mild','quiet','dormant')),
@@ -123,7 +155,22 @@ CREATE TABLE IF NOT EXISTS quiet_periods (
     ends_at TEXT NOT NULL,
     reason TEXT,
     source TEXT NOT NULL,
-    meeting_id INTEGER
+    meeting_id INTEGER,
+    goal_id INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS block_runs (
+    id INTEGER PRIMARY KEY,
+    day TEXT NOT NULL,
+    block_id TEXT NOT NULL,
+    goal_id INTEGER,
+    state TEXT NOT NULL CHECK (state IN ('running','paused','done')),
+    started_at TEXT NOT NULL,
+    ended_at TEXT,
+    accumulated_seconds REAL NOT NULL DEFAULT 0,
+    resumed_at TEXT,
+    updated_at TEXT NOT NULL,
+    UNIQUE (day, block_id)
 );
 
 CREATE TABLE IF NOT EXISTS app_settings (
@@ -219,3 +266,53 @@ def migrate(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    goal_cols = {row[1] for row in conn.execute("PRAGMA table_info(plan_goals)")}
+    if "archived_at" not in goal_cols:
+        conn.execute("ALTER TABLE plan_goals ADD COLUMN archived_at TEXT")
+    quiet_cols = {row[1] for row in conn.execute("PRAGMA table_info(quiet_periods)")}
+    if "goal_id" not in quiet_cols:
+        conn.execute("ALTER TABLE quiet_periods ADD COLUMN goal_id INTEGER")
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS block_runs (
+            id INTEGER PRIMARY KEY,
+            day TEXT NOT NULL,
+            block_id TEXT NOT NULL,
+            goal_id INTEGER,
+            state TEXT NOT NULL CHECK (state IN ('running','paused','done')),
+            started_at TEXT NOT NULL,
+            ended_at TEXT,
+            accumulated_seconds REAL NOT NULL DEFAULT 0,
+            resumed_at TEXT,
+            updated_at TEXT NOT NULL,
+            UNIQUE (day, block_id)
+        )
+        """
+    )
+    _backfill_plan_goals(conn)
+
+
+def _backfill_plan_goals(conn: sqlite3.Connection) -> None:
+    """Give every stored plan real goal rows.
+
+    Goals used to live only as the newline-joined ``daily_plans.outcomes`` blob,
+    so days planned before this table existed have no rows to carry status on.
+    """
+    planned_days = {row["day"] for row in conn.execute("SELECT DISTINCT day FROM plan_goals")}
+    plans = conn.execute("SELECT day, outcomes, created_at, updated_at FROM daily_plans").fetchall()
+    for row in plans:
+        if row["day"] in planned_days:
+            continue
+        position = 0
+        for line in re.split(r"[\n;]+", row["outcomes"] or ""):
+            text = re.sub(r"^\s*(?:[-•]|\d+[.)])\s*", "", line).strip()
+            if not text:
+                continue
+            conn.execute(
+                """
+                INSERT INTO plan_goals(day, text, position, status, created_at, updated_at)
+                VALUES (?, ?, ?, 'planned', ?, ?)
+                """,
+                (row["day"], text, position, row["created_at"], row["updated_at"]),
+            )
+            position += 1

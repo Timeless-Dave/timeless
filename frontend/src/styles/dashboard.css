@@ -1,4 +1,5 @@
 @import './dashboard-layout.css';
+@import './now-panel.css';
 
 .get-started-hero {
   position: relative;

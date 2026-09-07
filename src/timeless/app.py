@@ -19,7 +19,7 @@ from timeless.hands import parse, run as run_hands
 from timeless.google_sheets import GoogleSheets, GoogleSheetsError
 from timeless.local_cmd import apply_local, parse_local
 from timeless.recap import build_cards, connect_phone, ensure_recap
-from timeless.store import Store
+from timeless.store import Store, StoreUnavailable, goal_progress as _goal_progress
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "web"
@@ -28,9 +28,44 @@ DEFAULT_DB = Path.home() / "Library" / "Application Support" / "Timeless" / "tim
 
 
 class PlanIn(BaseModel):
-    outcomes: str
-    timeline: list[dict] = Field(min_length=1)
+    outcomes: str = ""
+    timeline: list[dict] = []
     day: str | None = None
+    goals: list[dict] | None = None
+
+
+class GoalPatchIn(BaseModel):
+    status: str
+    note: str | None = None
+
+
+class ReflectIn(BaseModel):
+    lesson: str = ""
+    day: str | None = None
+
+
+class CorrectionIn(BaseModel):
+    title: str
+    bucket: str
+    day: str | None = None
+
+
+class BlockActionIn(BaseModel):
+    day: str | None = None
+    goal_id: int | None = None
+
+
+class StartWorkIn(BaseModel):
+    day: str | None = None
+    goal_id: int | None = None
+    block_id: str | None = None
+    focus_minutes: int | None = None
+    focus_level: str = "quiet"
+
+
+class StopWorkIn(BaseModel):
+    day: str | None = None
+    end_focus: bool = True
 
 
 class RitualIn(BaseModel):
@@ -159,6 +194,7 @@ class QuietIn(BaseModel):
     minutes: int | None = 60
     ends_at: str | None = None
     reason: str | None = None
+    goal_id: int | None = None
 
 
 def create_app(db_path: str | None = None) -> FastAPI:
@@ -185,6 +221,12 @@ def create_app(db_path: str | None = None) -> FastAPI:
         if not token_ok(provided, host):
             return JSONResponse({"detail": "token required"}, status_code=401)
         return await call_next(request)
+
+    @app.exception_handler(StoreUnavailable)
+    def _store_unavailable(_request: Request, exc: StoreUnavailable):
+        # A database failure the store could not unwind. Reported as "try again"
+        # rather than a generic 500, because restarting the service fixes it.
+        return JSONResponse({"detail": str(exc)}, status_code=503)
 
     @app.get("/api/access")
     def access(request: Request):
@@ -213,11 +255,15 @@ def create_app(db_path: str | None = None) -> FastAPI:
                 muted = {"title": raw.get("title"), "halt_kind": raw.get("halt_kind")}
         return {
             "plan": plan,
+            "goal_progress": (plan or {}).get("goal_progress") or _goal_progress((plan or {}).get("goals") or []),
+            "carry_forward": store.carry_forward_candidates(now_day),
+            "active_work": store.active_work(now_day),
             "day": now_day,
             "tz": str(zone()),
             "needs_gate": plan is None,
             "needs_recap": store.needs_recap(),
             "recap": recap,
+            "recap_day": due_recap_day(),
             "halt": halt,
             "quiet": quiet,
             "muted_halt": muted,
@@ -329,6 +375,7 @@ def create_app(db_path: str | None = None) -> FastAPI:
                 ends_at=body.ends_at,
                 reason=body.reason,
                 source="manual",
+                goal_id=body.goal_id,
             )
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
@@ -344,13 +391,23 @@ def create_app(db_path: str | None = None) -> FastAPI:
     def panic_quiet():
         return store.panic_quiet()
 
-    @app.get("/api/plan")
-    def get_plan(day: str | None = None):
+    def _day_param(day: str | None) -> str:
         key = day or day_key()
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", key):
             raise HTTPException(400, "day must be YYYY-MM-DD")
+        return key
+
+    @app.get("/api/plan")
+    def get_plan(day: str | None = None):
+        key = _day_param(day)
         plan = store.get_plan(key)
-        return plan or {"day": key, "outcomes": "", "timeline": []}
+        return plan or {
+            "day": key,
+            "outcomes": "",
+            "timeline": [],
+            "goals": [],
+            "goal_progress": _goal_progress([]),
+        }
 
     @app.post("/api/plan")
     def save_plan(body: PlanIn):
@@ -358,9 +415,89 @@ def create_app(db_path: str | None = None) -> FastAPI:
             day = body.day or day_key()
             if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day):
                 raise ValueError("day must be YYYY-MM-DD")
-            return store.save_plan(body.outcomes, body.timeline, day=day)
+            return store.save_plan(body.outcomes, body.timeline, day=day, goals=body.goals)
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from exc
+
+    @app.patch("/api/goals/{goal_id}")
+    def patch_goal(goal_id: int, body: GoalPatchIn):
+        try:
+            return store.set_goal_status(goal_id, body.status, body.note)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.get("/api/work")
+    def get_work(day: str | None = None):
+        return store.active_work(_day_param(day))
+
+    @app.post("/api/work/start")
+    def start_work(body: StartWorkIn):
+        try:
+            return store.start_work(
+                day=_day_param(body.day),
+                goal_id=body.goal_id,
+                block_id=body.block_id,
+                focus_minutes=body.focus_minutes,
+                focus_level=body.focus_level,
+            )
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.post("/api/work/stop")
+    def stop_work(body: StopWorkIn):
+        return store.stop_work(day=_day_param(body.day), end_focus=body.end_focus)
+
+    @app.post("/api/blocks/{block_id}/{action}")
+    def block_action(block_id: str, action: str, body: BlockActionIn):
+        key = _day_param(body.day)
+        runner = {"start": store.start_block, "pause": store.pause_block, "finish": store.finish_block}.get(action)
+        if not runner:
+            raise HTTPException(404, "action must be start, pause or finish")
+        try:
+            if action == "start":
+                return runner(key, block_id, body.goal_id)
+            return runner(key, block_id)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.get("/api/goals/archived")
+    def archived_goals(day: str | None = None):
+        key = _day_param(day)
+        return {"day": key, "goals": store.archived_goals(key)}
+
+    @app.post("/api/goals/{goal_id}/restore")
+    def restore_goal(goal_id: int):
+        try:
+            return store.restore_goal(goal_id)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.get("/api/productivity")
+    def get_productivity(day: str | None = None):
+        key = _day_param(day)
+        return store.productivity_on_day(key)
+
+    @app.post("/api/activity/correct")
+    def correct_activity(body: CorrectionIn):
+        key = _day_param(body.day)
+        try:
+            return store.correct_activity(key, body.title, body.bucket)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.get("/api/recap/reflection")
+    def get_reflection(day: str | None = None):
+        return store.get_reflection(_day_param(day))
+
+    @app.post("/api/recap/reflect")
+    def save_reflection(body: ReflectIn):
+        return store.save_reflection(_day_param(body.day), body.lesson)
+
+    @app.get("/api/goals")
+    def list_goals(day: str | None = None):
+        key = _day_param(day)
+        goals = store.list_goals(key)
+        return {"day": key, "goals": goals, "goal_progress": _goal_progress(goals)}
 
     @app.post("/api/rituals")
     def add_ritual(body: RitualIn):
@@ -574,6 +711,10 @@ def create_app(db_path: str | None = None) -> FastAPI:
         def recap_page():
             return _spa_page("/recap")
 
+        @app.get("/ops")
+        def ops_page():
+            return _spa_page("/ops")
+
         if FRONTEND_DIST.exists():
             assets_dir = FRONTEND_DIST / "assets"
             if assets_dir.exists():
@@ -623,10 +764,10 @@ def _offline_chat(message: str, snapshot: dict) -> str:
     if any(word in msg for word in ("productive", "productivity", "aligned", "alignment", "focus")):
         p = snapshot.get("productivity") or {}
         if p.get("score") is None:
-            return "I do not have enough classified activity yet to estimate productivity. Keep ActivityWatch running."
+            return "I do not have enough classified activity yet to estimate alignment. Keep ActivityWatch running."
         mins = p.get("minutes") or {}
         return (
-            f"Estimated productivity is {p['score']} with {p.get('coverage', 'low')} coverage. "
+            f"Estimated alignment is {p['score']} with {p.get('coverage', 'low')} coverage. "
             f"{mins.get('aligned', 0)}m matched the plan, {mins.get('productive_off_plan', 0)}m was productive but off-plan, "
             f"and {mins.get('distracting', 0)}m looked distracting."
         )

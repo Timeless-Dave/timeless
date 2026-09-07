@@ -102,7 +102,9 @@ components:
 
 Timeless is an experimental personal operating system: a dark, spatial command field mounted inside a warm, tactile shell. Light bends across glass, particles assemble into language, navigation blooms under the pointer, and operational signals occupy distinct depths while information remains direct and usable.
 
-This is deliberately high-variance and high-motion (variance 9, motion 9, density 7). React Bits components are authored language, not optional decoration: ParticleText, Lightfall, SideRays, GlassIcons, TrueFocus, TextType, Cubes, InfiniteSpiral, Masonry, Folder, EvilEye, ClickSpark, GlowCursor, and BentoAnalytics each retain a meaningful role. Motion, canvas, OGL, and shaders always yield to reduced-motion settings, missing WebGL, constrained devices, and semantic fallbacks.
+This is deliberately high-variance and high-motion (variance 9, motion 9, density 7), but the field surrounds the work rather than preceding it. React Bits components are authored language where they carry meaning: Lightfall, SideRays, Cubes, InfiniteSpiral, Masonry, Folder, EvilEye, ClickSpark, GlowCursor, and BentoAnalytics each retain a role. Motion, canvas, OGL, and shaders always yield to reduced-motion settings, missing WebGL, constrained devices, and semantic fallbacks.
+
+The dashboard's first viewport is the exception and answers to Product Principle 1 alone: it opens on the Now panel — current goal, its completion controls, the current time block, the next event, and evidence freshness — with no branding stage, typed status, or duplicate shortcut layer in front of it. ParticleText, TextType, TrueFocus, GlassJumper, and CommandBlock remain in the component library for ceremonial surfaces such as the daily gate, and are no longer mounted on the dashboard.
 
 **Key Characteristics:**
 
@@ -157,9 +159,9 @@ Warm neutrals establish the physical room; charcoal and graphite create the comm
 
 ## Layout
 
-The app occupies a bounded 1440px shell on warm ground. Its core is intentionally asymmetric: the operational stream sits beside a narrower dark sensor rail, while the overview opens with a contained, non-shrinking dimensional stage (`flex: 0 0 auto`, minimum 850px) containing the glass hero, floating signal card, commands, and the complete GlassJumper shortcut layer inside its clipped boundary. Bento spans, masonry, folders, and spiral media create controlled density without equalizing every module.
+The app occupies a bounded 1440px shell on warm ground. Its core is intentionally asymmetric: the operational stream sits beside a narrower dark sensor rail. The stream opens with the Now panel, followed by four at-a-glance metrics, the activity-evidence card, the plan editor, and then the operational sections. Trends sit behind an explicit disclosure at the end, because they describe the day rather than advance it. Bento spans, masonry, folders, and spiral media create controlled density without equalizing every module.
 
-Desktop navigation is a sticky 42px pill assembly with animated logo and circular hover reveals. At 768px it becomes a logo-and-hamburger system with a rounded dynamic menu; the signal card rejoins document flow and the stage becomes a tall, natural-flow field (minimum 1380px) so its hero, actions, commands, and GlassJumper shortcuts remain contained without clipping or compression. At 1100px multi-column command content stacks. Touch targets, safe-area clearance, readable flow, and freedom from horizontal overflow remain mandatory.
+PillNav is the single navigation system; every destination it names is a section that exists, and its active item follows the section in view rather than the last click. Desktop navigation is a sticky 42px pill assembly with animated logo and circular hover reveals. At 768px it becomes a logo-and-hamburger system with a rounded dynamic menu. At 1100px multi-column content stacks. Touch targets, safe-area clearance, readable flow, and freedom from horizontal overflow remain mandatory.
 
 ## Elevation & Depth
 
@@ -198,9 +200,9 @@ Desktop uses the complete PillNav behavior: circular hover expansion, stacked la
 
 ### Kinetic & Spatial Components
 
-- **ParticleText / TextType / TrueFocus:** Identity, current action, and transitional emphasis. TextType types one short semantic status once, without cycling, then holds the completed phrase as stable state.
+- **ParticleText / TextType / TrueFocus:** Reserved for ceremonial surfaces such as the daily gate. They are not used on the dashboard, whose first viewport belongs to the current goal.
 - **Lightfall / SideRays:** Shader atmosphere with CSS or static fallbacks when WebGL is unavailable.
-- **GlassIcons / GlassJumper:** Spatial shortcuts with real accessible buttons layered over visual icons. The entire shortcut layer stays inside the command-stage boundary on desktop and in the mobile stage's natural flow.
+- **GlassIcons / GlassJumper:** Spatial shortcuts with real accessible buttons layered over visual icons. Not used on the dashboard, where they duplicated PillNav; available for surfaces that have no other navigation.
 - **Cubes / InfiniteSpiral / Masonry / Folder:** Activity, recency, mail, and programs through distinct spatial metaphors.
 - **EvilEye:** Reserved for Halt, where vigilant attention is semantically appropriate.
 - **ClickSpark / GlowCursor:** Fine-pointer feedback only; disable under reduced motion and never obscure focus or input.
@@ -209,9 +211,95 @@ Desktop uses the complete PillNav behavior: circular hover expansion, stacked la
 
 The floating signal plate is signature: translucent glass, slight rotation, amber metadata, prominent value, and concise copy. It becomes an aligned full-width block on mobile.
 
+### Surfaces
+
+Today's execution and operational maintenance are separate pages. `/` holds Now, the day's metrics, activity evidence, and the plan editor. `/ops` holds calendar, programs, mail, rituals, approvals, and sensor health. The dashboard links to it rather than stacking it below. PillNav is the one navigation system on both, naming only destinations that surface has, and its active item follows the section in view.
+
+There is no dashboard search. What shipped before was a panel filter that scraped rendered text and hid whole cards; it neither searched the content people would look for nor explained an empty result, so it was removed rather than left to imply a capability that did not exist.
+
+### Now Panel
+
+The dashboard's first element and the only one guaranteed above the fold. It states the current goal, offers its status controls (start, done, partly done, defer, drop), and then the current time block with minutes remaining, the next event, and when activity evidence last arrived. Every goal for the day follows as a compact list with the same controls. It uses ordinary cards and native controls: this surface is read many times a day and answers "what now?", so it stays quiet.
+
+### Goal States
+
+Goals are stored entities with a lifecycle, not lines of text. `planned`, `active`, `done`, `partial`, `deferred`, and `dropped` each have a chip, a tone, and a one-line definition surfaced in the interface rather than left to be inferred. `partial` means real progress that is still actionable today, counts as half a goal, and carries forward. `deferred` means deliberately not worked on: it carries forward but is never offered as the next goal, because pushing something away should not hand it straight back. `dropped` leaves the count entirely rather than reading as a failure. At most one goal per day is `active`. Each goal shows one primary action — the ordinary next step for its state — with the exceptional outcomes behind a labelled menu, so deferring and dropping never compete visually with finishing. Deferring, partly finishing, or dropping a goal invites a one-line reason, and a goal pulled into a later day carries its lineage so repeated slippage is visible as "Carried over N times". Explicit status is the record of the day; nothing infers it.
+
+### Recap
+
+The recap is a decision loop, not a slideshow, and it closes on "Close the day" rather than "I saw this." Seven steps, three of them interactive: judge every goal (with a reason for partial, deferred, and dropped), correct anything the classifier read wrong, and keep one lesson. Interactive steps read live goal and evidence state rather than the snapshot stored with the cards, so a status changed mid-recap is never stale. The closing step names exactly what carries into tomorrow, with each goal's reason and slip count attached.
+
+The day cannot close while a goal is still unjudged, and the rule lives in the store rather than the button. `ack_recap` refuses a day holding `planned` or `active` goals and names them; the API returns 400. A disabled button is a courtesy to one client, while the day's record has to be unambiguous for every client — the legacy overlay, a second tab, a stale browser. The interface gates the same rule ahead of time so the refusal is rare, and reloads the goals if it ever fires.
+
+"Close the day" is disabled and the block appears above the controls, not beneath them, offering the two ways forward: jump back to judge them individually, or defer the rest with one reason. Deferring in bulk is itself a judgement, which is the point — an unanswered record is the one outcome the recap will not accept. Every settled status counts as judged, including dropped; a day with no plan closes freely.
+
+Week comparison plots goals set against goals finished. It never compares planned blocks with logged events: those are unlike units and the ratio meant nothing.
+
+### Plan Safety
+
+A plan the system cannot honour is refused, not saved: a block ending before it starts, or two blocks claiming the same minutes, is an inline error that disables the save button and marks the offending field. Everything else is a warning that informs the commitment without blocking it — an overloaded day, a block running hours without a break, a collision with something already on the calendar, more goals than a day holds. The rules live in `plan-validation.js` and `planning.py` and are enforced in both, so the legacy overlay pages cannot write a schedule the dashboard would reject.
+
+The editor states its total planned hours, tracks Saved / Unsaved changes / Saving, keeps a per-day draft through a reload, and asks before switching dates with unsaved work.
+
+### Goal Removal
+
+Archived goals are recoverable through the product, not only the API: the plan editor lists what was removed from that day with its status and notes, and restores it in place. The immediate Undo covers the accident; this covers the change of mind a week later.
+
+Removing a goal that has any history — a status beyond planned, a note, a completion, or carried lineage — archives it rather than deleting it, and the editor says so alongside an Undo. A goal that was never acted on is simply deleted; it was a typo, not a record. Archived goals leave the day's counts and can be restored with their status and notes intact. Removing a goal detaches any time blocks pointing at it, and the undo strip names how many.
+
+### Execution
+
+Time blocks carry stable ids and can be started, paused, and finished, accumulating tracked time. Only one block runs at a time per day. Observed minutes falling inside a block are attributed to that block's goal and reported separately from the alignment buckets, because scheduling proximity is weak evidence and must not be dressed as proof.
+
+A block's id is its execution history. Every client must echo it back on save; a client that does not gets it inherited from the stored block it exactly matches, and a fresh id only when that match is ambiguous. Losing the id silently orphans recorded work, which reads to the owner as the product forgetting what they did.
+
+### One Active Work Context
+
+Goal, running block, and focus session are stored separately and can drift apart, so they are reconciled into a single answer to "what am I doing now." Starting work sets all three in one move: the goal becomes active, its block for the current window starts, and any focus session is bound to that goal. Stopping work pauses the block and ends focus without judging anything, because putting the day down is not the same as finishing it.
+
+Switching work is one database transaction, not merely one call: the store's commits route through a guard, and `start_work` runs on a savepoint that rolls back whole. Only a clean finish earns a commit — if the savepoint cannot be opened, the undo fails, or the release fails, the whole transaction is discarded rather than written, because committing after a failed undo is exactly how half a change reaches the file.
+
+When the database cannot be unwound at all, uncommitted is not the same as discarded: the abandoned writes sit in an open transaction that the next ordinary write would publish, minutes later and from unrelated code. So a store whose rollback fails is poisoned. Its connection is closed, which throws the open transaction away, and every later call raises `StoreUnavailable` until `reconnect()` is called deliberately. A failed commit propagates for the same reason — reporting success for work that is not on disk is worse than the failure. The API answers 503 and the dashboard says a restart is needed and no work was lost.
+
+The suite pins `TIMELESS_TZ` rather than inheriting it. Several tests assert this app's date arithmetic by name — which day a late-evening UTC event belongs to, when the recap window opens — so an inherited zone would make them pass on one machine and fail on another.
+
+Tests that reason about "now" freeze the clock rather than offsetting the real one. `active_work` reads the wall clock to decide which block covers the current minute, so its tests build windows hours either side; anchored to the real time of day, a two-hour offset wraps past midnight after about 21:00, turning an upcoming block into `23:30 → 00:30` that sorts before everything else. The suite then passes all afternoon and fails in the evening. The fixture pins local noon, and the window helper asserts it never crosses midnight.
+
+Note that releasing the outermost savepoint is what actually commits under this driver; the explicit `commit()` afterwards is belt and braces. The unwind logic is written for that, and a test documents it so the behaviour is not rediscovered by accident. The goal becomes active, its block starts, and any live focus session is re-bound to the new goal carrying its remaining time and level — or, if any step fails, none of it happens. A goal cannot end up switched with its focus left behind. A session is never left attached to the goal you switched away from — detecting that afterwards would be a contradiction the switch itself created.
+
+Now derives its headline goal and its next action from that single reconciled result and never recomputes either. The next action always describes the headline goal, falling back through running block, scheduled block, upcoming block, and finally the goal itself.
+
+What remains are real divergences between intent and schedule, not internal disagreement: a block running past its window, work running during another block's slot, a block scheduled now for a different goal, focus protecting something else. Each is named in plain words at the top of Now and carries the action that resolves it — `finish_block` or `switch_work` — so the interface dispatches on the server's decision rather than inferring one. The owner is never left to reconcile system state in their head.
+
+### Goal-Only Days
+
+A plan needs a goal. It does not need a schedule. Requiring a time block only taught people to type a placeholder one to get past the gate, which is worse than an honest empty timeline. The missing-goal case is caught inline before submission rather than by the server afterwards.
+
+### Visual Effects Budget
+
+This is load shedding, not thermal measurement, and the distinction matters. The browser exposes no temperature, power draw, or thermal-pressure signal, so nothing here can prove a laptop is hot — a GPU can hold 60fps while drawing serious power. What the budget does is stop the expensive layer whenever the cheap proxies say it is probably not worth paying for: reduced motion, running on battery, data saver, or visibly dropping frames. Confirming a fan problem still needs a real energy trace on the machine.
+
+Frame timing is sampled in short bursts rather than continuously, so the probe for cost is not itself a cost. The first sample runs a few seconds after load rather than half a minute in, and a reading latches, because a threshold that flips back and forth would restart the shader repeatedly. The Battery API exists only in Chromium; where it is missing nothing is assumed, and the sampler and the manual switch carry the weight.
+
+Reduced motion is evaluated before the manual switch. It is an accessibility preference, not a performance hint, so choosing "Full" cannot override it, and the control says so when that happens. Otherwise a three-way Auto / Full / Quiet control in the Theme popover overrides the automatic decision in either direction and states in plain words why effects are currently down. The full-viewport shader, click sparks, side rays, and the recency spiral all yield to it.
+
+### Notes and Dialogs
+
+Reasons for an outcome are captured in a real dialog, never `window.prompt`. The prompt could not say whether a reason was optional, gave no confirmation, ignored the page's visual language, and behaves inconsistently on mobile and with assistive technology. The replacement is a labelled modal with focus moved in on open, trapped while open, and returned to whatever opened it, Escape to cancel, and Cmd/Ctrl+Enter to confirm. Focus is restored from the dialog instance's own cleanup: the dialog is mounted only while open, so that is the code that actually runs when it closes. Behaviour like this is covered by DOM tests rather than by reading the source for a `focus()` call, which proves only that one was written.
+
+### Keyboard and Screen Reader
+
+A component that declares `role="menu"` keeps the promise: Arrow keys move between items, Home and End jump to the ends, Arrow Up or Down opens the menu with the matching end focused, Tab leaves and closes, Escape closes and returns focus to the trigger. Menu items are reached by roving focus rather than becoming extra tab stops.
+
+Invalid time fields carry `aria-describedby` pointing at the message that explains them, so the reason is heard and not only the fact of the error. Plan-level errors announce as an alert. Toasts live in a polite live region.
+
+### Estimated Measures
+
+Any number derived from observed activity is labelled as an estimate and never shown alone, and every estimate is correctable: a ruling from the owner replaces the classifier's guess for that day and the estimate is rebuilt from it. Observed items are shown by a readable label, never a raw window title or reverse-DNS bundle id. The alignment figure always travels with its basis — minutes observed, minutes judged, minutes unclassified — plus a confidence chip and a plain statement of the method. Charts plot only measured dimensions; an unmeasured one is labelled "Not measured" and excluded from the shape, never plotted as zero.
+
 ## Do's and Don'ts
 
-- **Do** use every supplied React Bits component in its intended semantic region; the full-component directive defines this world.
+- **Do** use the supplied React Bits components in their intended semantic regions, behind the first useful action rather than in front of it.
 - **Do** preserve the tension between warm physical ground and dark dimensional command space.
 - **Do** make motion expressive while keeping state, hierarchy, and actions immediately readable.
 - **Do** honor `prefers-reduced-motion`, keyboard focus, semantic text, and static fallbacks for canvas, OGL, and WebGL.
@@ -221,3 +309,5 @@ The floating signal plate is signature: translucent glass, slight rotation, ambe
 - **Don't** animate routine prose or every card. Concentrate kinetics at focal transitions and live signals.
 - **Don't** let shader effects, cursor trails, particles, or overlays capture input, hide focus, or block workflows.
 - **Don't** use flat generic tiles where a supplied spatial component carries the information more distinctly.
+- **Don't** put branding, typed status, or a second set of shortcuts ahead of the current goal in the first viewport.
+- **Don't** present an estimate as a verdict: no bare percentage without its coverage, confidence, and method, and no absent measurement drawn as a zero.

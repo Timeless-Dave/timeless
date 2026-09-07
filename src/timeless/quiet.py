@@ -36,6 +36,7 @@ def quiet_public(row: dict[str, Any] | None, now: datetime | None = None) -> dic
         "reason": row.get("reason"),
         "source": row.get("source"),
         "meeting_id": row.get("meeting_id"),
+        "goal_id": row.get("goal_id"),
         "seconds_left": remaining,
     }
 

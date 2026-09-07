@@ -195,7 +195,8 @@ void main() {
         uniforms.iTime.value = t * 0.001;
         try {
           renderer.render({ scene: mesh });
-        } catch (e) {
+        } catch {
+          // A lost GL context ends the loop rather than throwing every frame.
           return;
         }
       };
@@ -216,7 +217,9 @@ void main() {
             if (loseCtx) loseCtx.loseContext();
             const canvas = renderer.gl.canvas;
             if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
-          } catch (e) {}
+          } catch {
+            // Teardown is best effort; the context may already be gone.
+          }
         }
         rendererRef.current = null;
         uniformsRef.current = null;

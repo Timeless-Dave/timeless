@@ -1,14 +1,17 @@
 import Lightfall from '@/components/Lightfall';
-import { useIsMobile, usePageVisible, useReducedMotion, useViewportSize } from '@/hooks/useReducedMotion';
+import { useGpuBudget } from '@/hooks/useGpuBudget';
+import { useIsMobile, usePageVisible, useViewportSize } from '@/hooks/useReducedMotion';
 
 /** Full-viewport Lightfall behind the dashboard shell (not boxed inside cards). */
 export default function DashboardBackground() {
-  const reduce = useReducedMotion();
+  const { quiet } = useGpuBudget();
   const mobile = useIsMobile();
   const pageVisible = usePageVisible();
   const { width, height } = useViewportSize();
 
-  if (reduce || mobile) return null;
+  // The single most expensive thing on the page: a full-viewport shader that
+  // never stops. It yields to the budget, not just to Reduced Motion.
+  if (quiet || mobile) return null;
 
   const sizeKey = `${Math.round(width / 50)}-${Math.round(height / 50)}`;
 

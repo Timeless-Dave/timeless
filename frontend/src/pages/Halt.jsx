@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import EffectsShell from '@/components/EffectsShell';
 import EvilEye from '@/components/EvilEye';
@@ -30,11 +30,19 @@ export default function HaltPage({ showToast }) {
     setImInArmed(false);
   };
 
+  const tickRef = useRef(tick);
   useEffect(() => {
-    tick();
-    const id = setInterval(tick, 4000);
+    tickRef.current = tick;
+  });
+
+  useEffect(() => {
+    // The poll reads the latest tick through a ref so the interval is created
+    // once, instead of being torn down and rebuilt on every state change.
+    const run = () => tickRef.current();
+    run();
+    const id = setInterval(run, 4000);
     return () => clearInterval(id);
-  }, [busy, miss]);
+  }, []);
 
   const meetingId = () => halt?.meeting_id || halt?.id;
 

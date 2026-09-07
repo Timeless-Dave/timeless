@@ -112,7 +112,6 @@ export function ProgramsSection({
   showToast,
   searchHide,
   topPrograms,
-  reduce,
 }) {
   const [form, setForm] = useState({
     company: '',

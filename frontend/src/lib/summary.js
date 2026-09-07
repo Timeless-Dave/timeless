@@ -214,3 +214,34 @@ export function nextMeeting(meetings) {
       .sort((a, b) => parseTs(a.start_at) - parseTs(b.start_at))[0] || null
   );
 }
+
+function minutesOfDay(hhmm) {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm || ''));
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+/** The time block covering the current minute, plus whatever comes next. */
+export function currentBlocks(timeline, clock) {
+  const date = clock ? new Date(clock) : new Date();
+  const minute = date.getHours() * 60 + date.getMinutes();
+  const rows = (timeline || [])
+    .map(block => ({ ...block, from: minutesOfDay(block.start), to: minutesOfDay(block.end) }))
+    .filter(block => block.from != null && block.to != null && (block.task || '').trim())
+    .sort((a, b) => a.from - b.from);
+  const active = rows.find(block => block.from <= minute && minute < block.to) || null;
+  const next = rows.find(block => block.from > minute) || null;
+  return { active, next, remaining: active ? active.to - minute : null };
+}
+
+/** Whether a sensor has gone quiet. Wall-clock by nature: the dashboard polls
+ * every minute, so this is re-evaluated on each refresh. */
+export function sensorStale(heartbeat, now) {
+  const seen = parseTs(heartbeat?.last_seen);
+  if (Number.isNaN(seen)) return true;
+  return (now != null ? now : Date.now()) - seen > 30 * 60 * 1000;
+}
+
+export function freshSensorCount(heartbeats, now) {
+  return (heartbeats || []).filter(h => !sensorStale(h, now)).length;
+}

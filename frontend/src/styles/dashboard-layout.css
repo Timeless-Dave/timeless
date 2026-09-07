@@ -400,8 +400,6 @@ select {
 
 .pop {
   top: calc(100% + 0.5rem);
-  width: min(280px, 88vw);
-  padding: 1rem 1.15rem 1.15rem;
   transform: translateY(-6px) scale(.98);
   transform-origin: top right;
 }

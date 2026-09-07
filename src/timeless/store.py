@@ -100,6 +100,7 @@ def _goal_entries(goals: list[Any]) -> list[dict[str, Any]]:
             {
                 "id": int(raw_id) if isinstance(raw_id, int) or str(raw_id or "").isdigit() else None,
                 "text": text[:400],
+                "next_step": (str(goal.get("next_step") or "").strip() or None),
                 "status": status,
                 "note": (str(goal.get("note") or "").strip() or None),
                 "carried_from": int(goal["carried_from"]) if str(goal.get("carried_from") or "").isdigit() else None,
@@ -806,6 +807,9 @@ class Store:
                 "block_id": upcoming.get("block_id"),
                 "starts_at": upcoming.get("start"),
             }
+        step = str(goal.get("next_step") or "").strip()
+        if step:
+            return {"text": step[:400], "source": "goal_next_step"}
         return {"text": goal["text"], "source": "goal"}
 
     def start_work(
@@ -966,16 +970,16 @@ class Store:
             if goal_id is None:
                 cursor = self.conn.execute(
                     """
-                    INSERT INTO plan_goals(day, text, position, status, note, carried_from, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO plan_goals(day, text, next_step, position, status, note, carried_from, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (day, entry["text"], position, entry["status"], entry["note"], entry["carried_from"], now, now),
+                    (day, entry["text"], entry["next_step"], position, entry["status"], entry["note"], entry["carried_from"], now, now),
                 )
                 kept.append(int(cursor.lastrowid))
                 continue
             self.conn.execute(
-                "UPDATE plan_goals SET text=?, position=?, note=COALESCE(?, note), updated_at=? WHERE id=?",
-                (entry["text"], position, entry["note"], now, goal_id),
+                "UPDATE plan_goals SET text=?, next_step=?, position=?, note=COALESCE(?, note), updated_at=? WHERE id=?",
+                (entry["text"], entry["next_step"], position, entry["note"], now, goal_id),
             )
             kept.append(goal_id)
         for goal_id in [gid for gid in existing if gid not in kept]:

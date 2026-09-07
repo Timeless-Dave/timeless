@@ -650,8 +650,42 @@ a.approval-kind:hover {
   .shell-content { border-radius: 16px; }
   .page-wrap { overflow: visible; }
   .page-body { display: block; overflow: visible; }
-  .main-col { padding: 0 1rem 5rem; overflow: visible; }
-  .dark-panel { min-height: 640px; overflow: hidden; }
+  .main-col { padding: 0 1rem 6.5rem; overflow: visible; }
+  .dark-panel { display: none; min-height: 0; overflow: hidden; }
+  .dark-panel--open { display: block; min-height: 420px; }
+  .day-summary { margin: 0.5rem 0 0.75rem; }
+  .day-summary__line {
+    margin: 0;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background: var(--card);
+    color: var(--body);
+    font-size: 16px;
+  }
+  .panel-disclosure__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font-size: 20px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+  }
+  .panel-disclosure__meta {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .rhythm-disclosure {
+    margin: 0.75rem 0 0;
+  }
   .metric-row { grid-template-columns: 1fr; }
   .grid-table thead { display: none; }
   .grid-table tr { display: block; margin-bottom: 0.75rem; border: 1px solid var(--line); border-radius: var(--radius-control); padding: 0.5rem; }

@@ -344,6 +344,20 @@ def test_next_action_falls_back_through_scheduled_then_upcoming_then_the_goal(cl
     assert bare["next_action"] == {"text": "A", "source": "goal"}
 
 
+def test_next_action_prefers_goal_next_step_over_outcome_text(store):
+    plan = store.save_plan(
+        "",
+        [],
+        day=None,
+        goals=[{"text": "Ship password reset", "next_step": "Write the expired-token integration test"}],
+    )
+    work = store.active_work(plan["day"])
+    assert work["next_action"] == {
+        "text": "Write the expired-token integration test",
+        "source": "goal_next_step",
+    }
+
+
 def test_a_settled_day_has_no_headline_and_no_next_action(store):
     plan = store.save_plan("A", [], day=None)
     store.set_goal_status(plan["goals"][0]["id"], "done")

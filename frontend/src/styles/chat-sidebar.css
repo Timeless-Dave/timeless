@@ -200,4 +200,8 @@
   .chat-sidebar {
     width: 100vw;
   }
+
+  .chat-sidebar-toggle {
+    bottom: calc(5.75rem + env(safe-area-inset-bottom));
+  }
 }

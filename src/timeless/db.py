@@ -269,6 +269,8 @@ def migrate(conn: sqlite3.Connection) -> None:
     goal_cols = {row[1] for row in conn.execute("PRAGMA table_info(plan_goals)")}
     if "archived_at" not in goal_cols:
         conn.execute("ALTER TABLE plan_goals ADD COLUMN archived_at TEXT")
+    if "next_step" not in goal_cols:
+        conn.execute("ALTER TABLE plan_goals ADD COLUMN next_step TEXT")
     quiet_cols = {row[1] for row in conn.execute("PRAGMA table_info(quiet_periods)")}
     if "goal_id" not in quiet_cols:
         conn.execute("ALTER TABLE quiet_periods ADD COLUMN goal_id INTEGER")

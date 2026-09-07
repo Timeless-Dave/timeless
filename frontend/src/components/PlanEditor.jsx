@@ -105,8 +105,9 @@ export default function PlanEditor({
       emptyGoal({ text: goal.text, carriedFrom: goal.id, deferredCount: (goal.deferred_count || 0) + 1 })
     );
 
-  const updateGoal = (key, text) =>
-    edit(goals.map(g => (g.key === key ? { ...g, text } : g)));
+  const patchGoal = (key, patch) => edit(goals.map(g => (g.key === key ? { ...g, ...patch } : g)));
+
+  const updateGoal = (key, text) => patchGoal(key, { text });
 
   const removeGoal = key => {
     const goal = goals.find(g => g.key === key);
@@ -242,7 +243,9 @@ export default function PlanEditor({
         <div className="goal-section__head">
           <div>
             <strong className="goal-section__title">Today&apos;s wins</strong>
-            <p className="goal-section__hint">One line per outcome. Tap a preset or type your own.</p>
+            <p className="goal-section__hint">
+              Outcome first, then the next physical action. The first goal is your must-win if the day goes sideways.
+            </p>
           </div>
           <button type="button" className="ghost small-btn" onClick={() => edit([...goals, emptyGoal()])}>
             + Goal
@@ -271,13 +274,24 @@ export default function PlanEditor({
               <span className="goal-row__index" aria-hidden="true">
                 {index + 1}
               </span>
-              <input
-                type="text"
-                value={goal.text}
-                onChange={e => updateGoal(goal.key, e.target.value)}
-                placeholder="Concrete win for today"
-                aria-label={`Goal ${index + 1}`}
-              />
+              <div className="goal-row__fields">
+                {index === 0 ? <span className="goal-row__must-win">Must-win</span> : null}
+                <input
+                  type="text"
+                  value={goal.text}
+                  onChange={e => updateGoal(goal.key, e.target.value)}
+                  placeholder="Outcome for today"
+                  aria-label={`Goal ${index + 1} outcome`}
+                />
+                <input
+                  type="text"
+                  className="goal-row__next"
+                  value={goal.nextStep || ''}
+                  onChange={e => patchGoal(goal.key, { nextStep: e.target.value })}
+                  placeholder="Next physical action"
+                  aria-label={`Goal ${index + 1} next action`}
+                />
+              </div>
               {goal.id && goal.status !== 'planned' ? (
                 <span className={`chip ${statusTone(goal.status)}`}>{statusLabel(goal.status)}</span>
               ) : null}

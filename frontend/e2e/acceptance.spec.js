@@ -59,9 +59,9 @@ test.describe('acceptance flows', () => {
     // With no plan for today the app routes to the gate.
     await expect(page).toHaveURL(/\/gate/);
 
-    await page.getByLabel('Goal 1', { exact: true }).fill('Ship the acceptance pass');
+    await page.getByLabel('Goal 1 outcome', { exact: true }).fill('Ship the acceptance pass');
     await page.getByRole('button', { name: '+ Goal' }).click();
-    await page.getByLabel('Goal 2', { exact: true }).fill('Read the arXiv paper');
+    await page.getByLabel('Goal 2 outcome', { exact: true }).fill('Read the arXiv paper');
 
     const { start, end } = windowAroundNow();
     await page.getByLabel('Block 1 start').fill(start);
@@ -86,7 +86,7 @@ test.describe('acceptance flows', () => {
 
   test('refuses an impossible schedule before saving', async ({ page }) => {
     await page.goto('/gate');
-    await page.getByLabel('Goal 1', { exact: true }).fill('Something');
+    await page.getByLabel('Goal 1 outcome', { exact: true }).fill('Something');
     await page.getByLabel('Block 1 start').fill('14:00');
     await page.getByLabel('Block 1 end').fill('13:00');
     await page.getByLabel('Block 1 focus').fill('backwards');
@@ -107,7 +107,7 @@ test.describe('acceptance flows', () => {
     const now = page.locator('#now');
     await expect(now.getByRole('heading', { name: 'Now' })).toBeVisible();
 
-    await now.getByRole('button', { name: 'Start work' }).click();
+    await now.locator('.now-panel__focus').getByRole('button', { name: 'Start', exact: true }).click();
     await expect(now.locator('.now-panel__kicker')).toHaveText('Working on');
     await expect(now.getByRole('button', { name: 'Stop work' })).toBeVisible();
 
@@ -161,6 +161,8 @@ test.describe('acceptance flows', () => {
     await page.goto('/');
     // The app routes on load; wait until it has settled on the dashboard.
     await expect(page.locator('#now')).toBeVisible();
+    const planTrigger = page.locator('#panel-plan').getByRole('button', { name: 'Plan' });
+    if (await planTrigger.isVisible()) await planTrigger.click();
     const editor = page.locator('.plan-editor');
 
     await editor.getByRole('button', { name: 'Remove goal 1' }).click();

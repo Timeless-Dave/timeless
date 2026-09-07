@@ -53,7 +53,12 @@ export default function Dashboard({ showToast }) {
   const [focusMin, setFocusMin] = useState(60);
   const [refreshing, setRefreshing] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [rhythmOpen, setRhythmOpen] = useState(false);
   const planRequest = useRef(0);
+
+  const isMobile = breakpoint === 'mobile';
 
   const statusTrigger = useRef(null);
   const focusTrigger = useRef(null);
@@ -161,6 +166,23 @@ export default function Dashboard({ showToast }) {
 
   const productivity = today?.productivity || {};
   const progress = today?.goal_progress || {};
+  const evidenceItems = evidenceRows(productivity);
+  const goalCount = progress.counted || 0;
+  const meetingCount = today?.meetings?.length || 0;
+  const approvalCount = today?.approvals?.length || 0;
+  const hasAlignment = productivity.score != null;
+  const showEvidence = evidenceItems.length > 0 || hasAlignment;
+  const summaryBits = [
+    goalCount ? `${progress.done || 0}/${goalCount} goals` : null,
+    meetingCount ? `${meetingCount} event${meetingCount === 1 ? '' : 's'}` : null,
+    approvalCount ? `${approvalCount} approval${approvalCount === 1 ? '' : 's'}` : null,
+    hasAlignment ? `~${productivity.score}% aligned` : null,
+  ].filter(Boolean);
+
+  const openPlan = () => {
+    setPlanOpen(true);
+    scrollToHash('#panel-plan');
+  };
 
   return (
     <ChatProvider onRefresh={refresh}>
@@ -388,85 +410,143 @@ export default function Dashboard({ showToast }) {
                   plan={today?.plan}
                   onRefresh={refresh}
                   showToast={showToast}
-                  onOpenPlan={() => scrollToHash('#panel-plan')}
+                  onOpenPlan={openPlan}
                 />
 
-                <section id="overview-metrics" aria-label="Day at a glance">
-                  <div className="metric-row">
-                    <article className="card metric-card span-3">
-                      <p className="card-lead">Goals done</p>
-                      <div className="metric-value">
-                        {progress.counted ? `${progress.done || 0}/${progress.counted}` : '—'}
+                {summaryBits.length ? (
+                  <section
+                    id="overview-metrics"
+                    aria-label="Day at a glance"
+                    className={isMobile ? 'day-summary' : undefined}
+                  >
+                    {isMobile ? (
+                      <p className="day-summary__line">{summaryBits.join(' · ')}</p>
+                    ) : (
+                      <div className="metric-row">
+                        {goalCount ? (
+                          <article className="card metric-card span-3">
+                            <p className="card-lead">Goals done</p>
+                            <div className="metric-value">{`${progress.done || 0}/${goalCount}`}</div>
+                            <p className="metric-note">{goalProgressLabel(progress)}</p>
+                          </article>
+                        ) : null}
+                        {meetingCount ? (
+                          <article className="card metric-card span-3">
+                            <p className="card-lead">Events</p>
+                            <div className="metric-value">{meetingCount}</div>
+                            <p className="metric-note">{eventsSummary(today?.meetings)}</p>
+                          </article>
+                        ) : null}
+                        {approvalCount ? (
+                          <article className="card metric-card span-3">
+                            <p className="card-lead">Approvals</p>
+                            <div className="metric-value">{approvalCount}</div>
+                            <p className="metric-note">{approvalsSummary(today?.approvals)}</p>
+                          </article>
+                        ) : null}
+                        {hasAlignment ? (
+                          <article className="card metric-card span-3">
+                            <p className="card-lead">Est. alignment</p>
+                            <div className="metric-value">~{productivity.score}%</div>
+                            <p className="metric-note">{coverageNote(productivity)}</p>
+                          </article>
+                        ) : null}
                       </div>
-                      <p className="metric-note">{goalProgressLabel(progress)}</p>
-                    </article>
-                    <article className="card metric-card span-3">
-                      <p className="card-lead">Events</p>
-                      <div className="metric-value">{today?.meetings?.length || 0}</div>
-                      <p className="metric-note">{eventsSummary(today?.meetings)}</p>
-                    </article>
-                    <article className="card metric-card span-3">
-                      <p className="card-lead">Approvals</p>
-                      <div className="metric-value">{today?.approvals?.length || 0}</div>
-                      <p className="metric-note">{approvalsSummary(today?.approvals)}</p>
-                    </article>
-                    <article className="card metric-card span-3">
-                      <p className="card-lead">Est. alignment</p>
-                      <div className="metric-value">
-                        {productivity.score == null ? 'No estimate' : `~${productivity.score}%`}
-                      </div>
-                      <p className="metric-note">{coverageNote(productivity)}</p>
-                    </article>
-                  </div>
-                </section>
+                    )}
+                  </section>
+                ) : null}
 
-                <section className="card evidence-card" id="panel-evidence" aria-labelledby="evidence-title">
-                  <div className="card-head">
-                    <h2 id="evidence-title">Activity evidence</h2>
-                    <span className={`chip ${productivity.confidence === 'high' ? 'mint' : productivity.confidence === 'medium' ? 'cyan' : 'neutral'}`}>
-                      {productivity.confidence ? `${productivity.confidence} confidence` : 'no estimate'}
-                    </span>
-                  </div>
-                  <p className="card-lead">{alignmentHeadline(productivity)}</p>
-                  <p className="evidence-card__basis">
-                    {coverageNote(productivity)} · {freshnessNote(productivity)}
-                  </p>
-                  <p className="evidence-card__caveat">
-                    Estimated by {productivity.method || 'matching plan text against observed activity'}.{' '}
-                    {confidenceNote(productivity)} Goal outcomes above are the record of what you actually finished.
-                  </p>
-                  {evidenceRows(productivity).length ? (
-                    <ul className="evidence-list">
-                      {evidenceRows(productivity).map(row => (
-                        <li key={`${row.title}-${row.bucket}`}>
-                          <span className="evidence-list__title">{row.title}</span>
-                          <span className={`chip ${bucketTone(row.bucket)}`}>{bucketLabel(row.bucket)}</span>
-                          <span className="evidence-list__minutes">{row.minutes} min</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="empty-note">No activity has been classified for this day yet.</p>
-                  )}
-                </section>
+                {showEvidence ? (
+                  <section className="card evidence-card" id="panel-evidence" aria-labelledby="evidence-title">
+                    {isMobile ? (
+                      <button
+                        type="button"
+                        className="panel-disclosure__trigger"
+                        aria-expanded={evidenceOpen}
+                        aria-controls="evidence-body"
+                        onClick={() => setEvidenceOpen(open => !open)}
+                      >
+                        <span>Activity evidence</span>
+                        <span className="panel-disclosure__meta">{alignmentHeadline(productivity)}</span>
+                      </button>
+                    ) : (
+                      <div className="card-head">
+                        <h2 id="evidence-title">Activity evidence</h2>
+                        <span className={`chip ${productivity.confidence === 'high' ? 'mint' : productivity.confidence === 'medium' ? 'cyan' : 'neutral'}`}>
+                          {productivity.confidence ? `${productivity.confidence} confidence` : 'no estimate'}
+                        </span>
+                      </div>
+                    )}
+                    <div id="evidence-body" hidden={isMobile && !evidenceOpen}>
+                      {!isMobile ? null : <h2 id="evidence-title" className="visually-hidden">Activity evidence</h2>}
+                      <p className="card-lead">{alignmentHeadline(productivity)}</p>
+                      <p className="evidence-card__basis">
+                        {coverageNote(productivity)} · {freshnessNote(productivity)}
+                      </p>
+                      {evidenceItems.length ? (
+                        <>
+                          <p className="evidence-card__caveat">
+                            Estimated by {productivity.method || 'matching plan text against observed activity'}.{' '}
+                            {confidenceNote(productivity)} Goal outcomes above are the record of what you actually finished.
+                          </p>
+                          <ul className="evidence-list">
+                            {evidenceItems.map(row => (
+                              <li key={`${row.title}-${row.bucket}`}>
+                                <span className="evidence-list__title">{row.title}</span>
+                                <span className={`chip ${bucketTone(row.bucket)}`}>{bucketLabel(row.bucket)}</span>
+                                <span className="evidence-list__minutes">{row.minutes} min</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : null}
+                    </div>
+                  </section>
+                ) : null}
 
                 <section className="card panel" id="panel-plan">
-                  <p className="card-lead">
-                    {plan?.goals?.length
-                      ? `${plan.goals.length} goal${plan.goals.length === 1 ? '' : 's'} and ${(plan.timeline || []).length} block${(plan.timeline || []).length === 1 ? '' : 's'} for this day.`
-                      : 'Set the outcomes that would make this day count.'}
-                  </p>
-                  <PlanEditor
-                    plan={plan}
-                    planDay={planDay}
-                    minDay={undefined}
-                    academics={academics}
-                    carryForward={planDay === today?.day ? today?.carry_forward : []}
-                    meetings={planDay === today?.day ? today?.meetings : []}
-                    onDayChange={loadPlanDay}
-                    onSaved={() => refresh({ force: true })}
-                    showToast={showToast}
-                  />
+                  {isMobile ? (
+                    <button
+                      type="button"
+                      className="panel-disclosure__trigger"
+                      aria-expanded={planOpen}
+                      aria-controls="plan-body"
+                      onClick={() => setPlanOpen(open => !open)}
+                    >
+                      <span>Plan</span>
+                      <span className="panel-disclosure__meta">
+                        {plan?.goals?.length
+                          ? `${plan.goals.length} goal${plan.goals.length === 1 ? '' : 's'}`
+                          : 'Set outcomes'}
+                      </span>
+                    </button>
+                  ) : (
+                    <p className="card-lead">
+                      {plan?.goals?.length
+                        ? `${plan.goals.length} goal${plan.goals.length === 1 ? '' : 's'} and ${(plan.timeline || []).length} block${(plan.timeline || []).length === 1 ? '' : 's'} for this day.`
+                        : 'Set the outcomes that would make this day count.'}
+                    </p>
+                  )}
+                  <div id="plan-body" hidden={isMobile && !planOpen}>
+                    {!isMobile ? null : (
+                      <p className="card-lead">
+                        {plan?.goals?.length
+                          ? `${plan.goals.length} goal${plan.goals.length === 1 ? '' : 's'} and ${(plan.timeline || []).length} block${(plan.timeline || []).length === 1 ? '' : 's'} for this day.`
+                          : 'Set the outcomes that would make this day count.'}
+                      </p>
+                    )}
+                    <PlanEditor
+                      plan={plan}
+                      planDay={planDay}
+                      minDay={undefined}
+                      academics={academics}
+                      carryForward={planDay === today?.day ? today?.carry_forward : []}
+                      meetings={planDay === today?.day ? today?.meetings : []}
+                      onDayChange={loadPlanDay}
+                      onSaved={() => refresh({ force: true })}
+                      showToast={showToast}
+                    />
+                  </div>
                 </section>
 
                 <section className="ops-link card" aria-labelledby="ops-link-title">
@@ -496,9 +576,27 @@ export default function Dashboard({ showToast }) {
                     {showAnalytics ? <BentoAnalytics today={today} /> : null}
                   </div>
                 </section>
+
+                {isMobile ? (
+                  <section className="rhythm-disclosure">
+                    <button
+                      type="button"
+                      className="ghost"
+                      aria-expanded={rhythmOpen}
+                      aria-controls="dark-rhythm"
+                      onClick={() => setRhythmOpen(open => !open)}
+                    >
+                      {rhythmOpen ? 'Hide rhythm' : 'Rhythm & streak'}
+                    </button>
+                  </section>
+                ) : null}
               </div>
 
-              <aside className="dark-panel" id="dark-rhythm">
+              <aside
+                className={`dark-panel${rhythmOpen ? ' dark-panel--open' : ''}`}
+                id="dark-rhythm"
+                hidden={isMobile && !rhythmOpen}
+              >
                 {!quietGpu ? (
                   <div className="side-rays-slot">
                     <SideRays speed={1.4} rayColor1="#d08726" rayColor2="#f8debd" intensity={1} origin="top-right" />

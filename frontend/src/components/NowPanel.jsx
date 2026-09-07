@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import GoalActions from '@/components/GoalActions';
+import MenuButton from '@/components/MenuButton';
 import NoteDialog from '@/components/NoteDialog';
 import { useChatPanel } from '@/components/chat-context';
 import { useNotePrompt } from '@/hooks/useNotePrompt';
@@ -7,6 +8,7 @@ import { api } from '@/lib/api';
 import {
   STATUS_HELP,
   deferredLabel,
+  goalActions,
   goalProgressLabel,
   statusLabel,
   statusTone,
@@ -63,6 +65,8 @@ export default function NowPanel({ today, plan, onRefresh, showToast, onOpenPlan
   const activeRun = activeBlock ? runOf(runs, activeBlock.block_id) : null;
   const day = today?.day;
   const isWorkingOnFocus = !!work.running_block && work.goal?.id === focus?.id;
+  const showExplicitStart = focus && ['planned', 'deferred'].includes(focus.status || 'planned');
+  const focusMoreActions = focus ? goalActions(focus).more : [];
 
   /** Goal, block and focus are set in one move so they cannot drift apart.
    * An existing focus session follows the work rather than being re-requested. */
@@ -208,6 +212,9 @@ export default function NowPanel({ today, plan, onRefresh, showToast, onOpenPlan
             {nextAction ? (
               <p className="now-panel__next">
                 Next action: {nextAction.text}
+                {nextAction.source === 'goal' && focus?.text === nextAction.text ? (
+                  <span className="now-panel__dim"> · add a next step in your plan</span>
+                ) : null}
                 {nextAction.minutes_left != null ? (
                   <span className="now-panel__dim"> · {nextAction.minutes_left} min left</span>
                 ) : null}
@@ -217,27 +224,44 @@ export default function NowPanel({ today, plan, onRefresh, showToast, onOpenPlan
               </p>
             ) : null}
             <div className="now-panel__actions">
-              <GoalActions goal={focus} busy={busyGoal === focus.id} onStatus={setStatus} size="large" />
               {isWorkingOnFocus ? (
-                <button type="button" className="ghost" disabled={busyWork} onClick={stopWork}>
-                  Stop work
-                </button>
-              ) : (
                 <>
-                  <button type="button" className="ghost" disabled={busyWork} onClick={() => startWork(focus)}>
-                    Start work
+                  <GoalActions goal={focus} busy={busyGoal === focus.id} onStatus={setStatus} size="large" />
+                  <button type="button" className="ghost" disabled={busyWork} onClick={stopWork}>
+                    Stop work
                   </button>
-                  {work.focus ? null : (
+                </>
+              ) : showExplicitStart ? (
+                <>
+                  <button type="button" disabled={busyWork} onClick={() => startWork(focus)}>
+                    Start
+                  </button>
+                  <MenuButton label="More" disabled={busyWork || busyGoal === focus.id}>
                     <button
                       type="button"
-                      className="ghost"
-                      disabled={busyWork}
+                      role="menuitem"
+                      tabIndex={-1}
+                      className="menu-item"
                       onClick={() => startWork(focus, { focusMinutes: 60 })}
                     >
-                      Start with focus
+                      Start with 60m focus
                     </button>
-                  )}
+                    {focusMoreActions.map(action => (
+                      <button
+                        key={action.status}
+                        type="button"
+                        role="menuitem"
+                        tabIndex={-1}
+                        className="menu-item"
+                        onClick={() => setStatus(focus, action)}
+                      >
+                        {action.label}
+                      </button>
+                    ))}
+                  </MenuButton>
                 </>
+              ) : (
+                <GoalActions goal={focus} busy={busyGoal === focus.id} onStatus={setStatus} size="large" />
               )}
             </div>
           </>

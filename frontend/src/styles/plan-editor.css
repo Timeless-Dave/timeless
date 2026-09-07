@@ -44,10 +44,31 @@
 .block-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
 }
 
+.goal-row__fields {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.goal-row__must-win {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-readable, var(--accent));
+}
+
+.goal-row__next {
+  color: var(--body);
+}
+
+.goal-row__fields > input[type='text'],
 .goal-row > input[type='text'],
 .block-row__task {
   flex: 1 1 12rem;

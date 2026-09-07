@@ -15,6 +15,7 @@ export function emptyGoal(overrides = {}) {
     key: newRowKey(),
     id: null,
     text: '',
+    nextStep: '',
     status: 'planned',
     note: null,
     carriedFrom: null,
@@ -44,6 +45,7 @@ export function goalsFromPlan(plan) {
       emptyGoal({
         id: goal.id,
         text: goal.text || '',
+        nextStep: goal.next_step || '',
         status: goal.status || 'planned',
         note: goal.note || null,
         carriedFrom: goal.carried_from ?? null,
@@ -84,6 +86,7 @@ export function planPayload(goals, blocks) {
     goals: kept.map(goal => ({
       id: goal.id ?? undefined,
       text: goal.text.trim(),
+      next_step: goal.nextStep?.trim() || undefined,
       status: goal.status || 'planned',
       note: goal.note || undefined,
       carried_from: goal.carriedFrom ?? undefined,

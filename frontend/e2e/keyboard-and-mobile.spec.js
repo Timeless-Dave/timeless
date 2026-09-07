@@ -10,18 +10,18 @@ test.describe('keyboard and narrow screens', () => {
 
   test('plans a day using only the keyboard', async ({ page, request }) => {
     await page.goto('/gate');
-    await expect(page.getByLabel('Goal 1', { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Goal 1 outcome', { exact: true })).toBeVisible();
 
     // Reach the first goal field by tabbing, never by clicking.
     let tabs = 0;
     for (; tabs < 40; tabs += 1) {
-      if (await page.getByLabel('Goal 1', { exact: true }).evaluate(el => el === document.activeElement)) break;
+      if (await page.getByLabel('Goal 1 outcome', { exact: true }).evaluate(el => el === document.activeElement)) break;
       await page.keyboard.press('Tab');
     }
     // Recorded rather than assumed: this is how far a keyboard user travels
     // before they can type the first goal of the day.
     expect(tabs, `tab stops before the first goal field: ${tabs}`).toBeLessThan(40);
-    await expect(page.getByLabel('Goal 1', { exact: true })).toBeFocused();
+    await expect(page.getByLabel('Goal 1 outcome', { exact: true })).toBeFocused();
     await page.keyboard.type('Typed with no mouse');
 
     const { start, end } = windowAroundNow();

@@ -20,6 +20,7 @@ export function emptyGoal(overrides = {}) {
     note: null,
     carriedFrom: null,
     deferredCount: 0,
+    templateKey: null,
     ...overrides,
   };
 }

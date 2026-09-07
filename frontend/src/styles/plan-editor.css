@@ -5,6 +5,19 @@
   font-weight: 700;
 }
 
+.plan-templates {
+  margin-bottom: 0.65rem;
+}
+
+.plan-templates__hint {
+  margin: 0 0 0.5rem;
+}
+
+.plan-templates__toggle {
+  margin-bottom: 0.45rem;
+  font-weight: 700;
+}
+
 .goal-section,
 .block-section {
   margin: 1rem 0 0.5rem;

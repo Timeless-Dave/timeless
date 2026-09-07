@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ArchivedGoals from '@/components/ArchivedGoals';
+import { useIsMobile } from '@/hooks/useReducedMotion';
 import { api } from '@/lib/api';
+import { templatesForAcademics } from '@/lib/plan-suggestions';
 import {
   blocksFromPlan,
   emptyBlock,
@@ -32,9 +34,15 @@ export default function PlanEditor({
   const [removed, setRemoved] = useState(null);
   const [saving, setSaving] = useState(false);
   const [archiveRefreshKey, setArchiveRefreshKey] = useState(0);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [serverError, setServerError] = useState('');
   const loadedDay = useRef('');
   const draft = usePlanDraft(planDay, plan?.updated_at);
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    setTemplatesOpen(!isMobile);
+  }, [isMobile]);
 
   const applyPlan = useCallback(
     source => {
@@ -79,10 +87,12 @@ export default function PlanEditor({
     [goals, blocks, meetings]
   );
 
-  const presetActive = useMemo(() => {
-    const texts = new Set(goals.map(g => g.text.trim().toLowerCase()).filter(Boolean));
-    return new Set((academics?.presets || []).filter(p => texts.has(p.toLowerCase())));
-  }, [goals, academics?.presets]);
+  const templates = useMemo(() => templatesForAcademics(academics), [academics]);
+
+  const activeTemplateKeys = useMemo(
+    () => new Set(goals.map(goal => goal.templateKey).filter(Boolean)),
+    [goals]
+  );
 
   const pending = useMemo(() => {
     const taken = new Set(goals.map(g => g.carriedFrom).filter(v => v != null));
@@ -91,13 +101,18 @@ export default function PlanEditor({
 
   const addGoalRow = goal => edit([...goals.filter(g => g.text.trim()), goal]);
 
-  const togglePreset = preset => {
-    const lower = preset.toLowerCase();
-    if (goals.some(g => g.text.trim().toLowerCase() === lower)) {
-      edit(goals.filter(g => g.text.trim().toLowerCase() !== lower));
+  const toggleTemplate = template => {
+    if (activeTemplateKeys.has(template.key)) {
+      edit(goals.filter(goal => goal.templateKey !== template.key));
       return;
     }
-    addGoalRow(emptyGoal({ text: preset }));
+    addGoalRow(
+      emptyGoal({
+        text: template.outcome,
+        nextStep: template.nextStep,
+        templateKey: template.key,
+      })
+    );
   };
 
   const carryGoal = goal =>
@@ -252,19 +267,38 @@ export default function PlanEditor({
           </button>
         </div>
 
-        {(academics?.presets || []).length ? (
-          <div className="preset-chips" role="group" aria-label="Study presets">
-            {(academics.presets || []).map(preset => (
+        {templates.length ? (
+          <div className="plan-templates">
+            {isMobile ? (
               <button
-                key={preset}
                 type="button"
-                className={`ghost preset-chip${presetActive.has(preset) ? ' on' : ''}`}
-                aria-pressed={presetActive.has(preset)}
-                onClick={() => togglePreset(preset)}
+                className="ghost plan-templates__toggle"
+                aria-expanded={templatesOpen}
+                aria-controls="plan-templates"
+                onClick={() => setTemplatesOpen(open => !open)}
               >
-                {preset}
+                {templatesOpen ? 'Hide quick starts' : 'Quick starts'}
               </button>
-            ))}
+            ) : (
+              <p className="goal-section__hint plan-templates__hint">
+                Quick starts add an outcome and next action — edit them to match today&apos;s work.
+              </p>
+            )}
+            <div id="plan-templates" hidden={isMobile && !templatesOpen}>
+              <div className="preset-chips" role="group" aria-label="Quick starts">
+                {templates.map(template => (
+                  <button
+                    key={template.key}
+                    type="button"
+                    className={`ghost preset-chip${activeTemplateKeys.has(template.key) ? ' on' : ''}`}
+                    aria-pressed={activeTemplateKeys.has(template.key)}
+                    onClick={() => toggleTemplate(template)}
+                  >
+                    {template.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         ) : null}
 
